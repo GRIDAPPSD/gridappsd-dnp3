@@ -38,7 +38,22 @@ class dnp3_mapping():
             A data structure following the protocol defined in the message structure
             of ``GridAPPSD``.  Most message payloads will be serialized dictionaries, but that is
             not a requirement.	
-	    
+	 self._message_count += 1
+
+        # Every message_period messages we are going to turn the capcitors on or off depending
+        # on the current capacitor state.
+        if self._message_count % message_period == 0:
+            if self._last_toggle_on:
+                _log.debug("count: {} toggling off".format(self._message_count))
+                msg = self._close_diff.get_message()
+                self._last_toggle_on = False
+            else:
+                _log.debug("count: {} toggling on".format(self._message_count))
+                msg = self._open_diff.get_message()
+                self._last_toggle_on = True
+
+            self._gapps.send(self._publish_to_topic, json.dumps(msg))
+   
 	    
 	    
 	    
