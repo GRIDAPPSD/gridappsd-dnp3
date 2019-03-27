@@ -53,9 +53,8 @@ class dnp3_mapping():
                 self._last_toggle_on = True
 
             self._gapps.send(self._publish_to_topic, json.dumps(msg))
+	"""
    
-	    
-	    
 	    
     def __init__(self,map_file):
 	self.c_ao = 0
