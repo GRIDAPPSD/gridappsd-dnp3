@@ -138,7 +138,11 @@ class dnp3_mapping():
 	
 
 	return self.out_json
-
-outfile = dnp3_mapping('model_dict.json')
-a = outfile._create_cim_object_map()
-outfile.load_json(a,'points.json')
+def _main():
+	_log.debug("Starting conversion")
+	outfile = dnp3_mapping('model_dict.json')
+	a = outfile._create_cim_object_map()
+	outfile.load_json(a,'points.json')
+	
+if __name__ == "__main__":
+    _main()
