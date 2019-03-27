@@ -1,4 +1,11 @@
 import json
+import logging
+import sys
+import time
+
+
+from gridappsd.topics import fncs_input_topic, fncs_output_topic
+
 
 out_json=list()
 
@@ -18,6 +25,23 @@ attribute_map = {
 }
 
 class dnp3_mapping():
+
+	
+    def on_message(self, headers, message):
+        """ Handle incoming messages on the fncs_output_topic for the simulation_id
+        Parameters
+        ----------
+        headers: dict
+            A dictionary of headers that could be used to determine topic of origin and
+            other attributes.
+        message: object
+            A data structure following the protocol defined in the message structure
+            of ``GridAPPSD``.  Most message payloads will be serialized dictionaries, but that is
+            not a requirement.	
+	    
+	    
+	    
+	    
     def __init__(self,map_file):
 	self.c_ao = 0
 	self.c_bo = 0
