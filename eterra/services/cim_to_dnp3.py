@@ -41,7 +41,7 @@ class dnp3_mapping():
 	 self._message_count += 1
 
         # Every message_period messages we are going to turn the capcitors on or off depending
-        # on the current capacitor state.
+        # on the current capacitor state. """
         if self._message_count % message_period == 0:
             if self._last_toggle_on:
                 _log.debug("count: {} toggling off".format(self._message_count))
@@ -53,7 +53,7 @@ class dnp3_mapping():
                 self._last_toggle_on = True
 
             self._gapps.send(self._publish_to_topic, json.dumps(msg))
-	"""
+	
    
 	    
     def __init__(self,map_file):
