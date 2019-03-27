@@ -2,7 +2,7 @@ import json
 
 out_json=list()
 
-
+# attribute mapping for control points
 attribute_map = {
     "capacitors" : {
         "attribute" : ["RegulatingControl.mode","RegulatingControl.targetDeadband","RegulatingControl.targetValue","ShuntCompensator.aVRDelay","ShuntCompensator.sections"]}
@@ -28,8 +28,9 @@ class dnp3_mapping():
 		
 	self.out_json= list()
 
+	
     def assign_val(self,data_type,group,variation,index,name,description,measurement_type,measurement_id):
-        records = dict()
+	records = dict()
         records["data_type"] = data_type
         records["index"] = index
         records["group"] = group
@@ -42,6 +43,7 @@ class dnp3_mapping():
 
 
     def assign_valc(self,data_type,group,variation,index,name,description,object_id,attribute):
+	# for control input points -capacitors, switches,regulators
 	records = dict()
 	records["data_type"] = data_type
 	records["index"] = index
@@ -53,14 +55,14 @@ class dnp3_mapping():
 	records["attribute"] = attribute
 	self.out_json.append(records)
 
-    def load_json(self,out_json,out_file):
+    def load_json(self,out_json,out_file): 
    	with open(out_file, 'w') as fp:
 	    out_dict= dict({'points':out_json})
 	    json.dump(out_dict,fp,indent =2, sort_keys=True)
 
-    def _create_cim_object_map(self):
+    def _create_dnp3_object_map(self):
 	feeders = self.file_dict.get("feeders",[])
-	for x in feeders:
+	for x in feeders: # reading model.dict json file
 	    measurements = x.get("measurements",[])
 	    capacitors = x.get("capacitors",[])
 	    regulators = x.get("regulators",[])
@@ -141,7 +143,7 @@ class dnp3_mapping():
 def _main():
 	_log.debug("Starting conversion")
 	outfile = dnp3_mapping('model_dict.json')
-	a = outfile._create_cim_object_map()
+	a = outfile._create_dnp3_object_map()
 	outfile.load_json(a,'points.json')
 	
 if __name__ == "__main__":
