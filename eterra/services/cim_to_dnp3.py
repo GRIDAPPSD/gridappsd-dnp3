@@ -2,13 +2,16 @@ import json
 import logging
 import sys
 import time
+import yaml
+
 
 from gridappsd.topics import fncs_input_topic, fncs_output_topic
-from typing import List, Dict, Union
+from typing import List, Dict, Union, Any
 
 out_json = list()
 
-# attribute mapping for control points
+'''Dictionary for mapping the attribute values of control poitns for Capacitor, Regulator and Switches'''
+
 attribute_map = {
     "capacitors": {
         "attribute": ["RegulatingControl.mode", "RegulatingControl.targetDeadband", "RegulatingControl.targetValue",
@@ -24,11 +27,11 @@ attribute_map = {
                       "TapChanger.lineDropCompensation", "TapChanger.step", "TapChanger.lineDropR",
                       "TapChanger.lineDropX"]}
 
-}  # type: Dict[str, Union[Dict[str, List[str]], Dict[str, str]]]
+}
 
 
 class dnp3_mapping():
-
+    """ This class creates dnps input and ouput points for incoming CIM messages and data from fncs ouput topic and model dictionary file respectively. It reads the input from model dictionary file created every time when the simulation is run. Each dictiobary file has simulation ID.  """
     def __init__(self, map_file):
         self.c_ao = 0
         self.c_bo = 0
@@ -38,37 +41,58 @@ class dnp3_mapping():
             self.file_dict = json.load(f)
 
         self.out_json = list()
-		
-	 def on_message(self, headers, msg):
+        
+    def on_message(self, headers, msg):
+        """ This method handles incoming messages on the fncs_output_topic for the simulation_id.
+        Parameters
+        ----------
+        headers: dict
+            A dictionary of headers that could be used to determine topic of origin and
+            other attributes.
+        message: object
+            A data structure following the protocol defined in the message structure
+            of ``GridAPPSD``.  Most message payloads will be serialized dictionaries, but that is
+            not a requirement.
+        """
         message = {}
-       
-		message_str = 'translating following message for fncs simulation '+simulation_id+' '+str(goss_message)
-		json_msg = yaml.safe_load(str(msg))
-		print(message_str)
-		
-		if simulation_id == None or simulation_id == '' or type(simulation_id) != str:
-			raise ValueError(
-				'simulation_id must be a nonempty string.\n'
-				+ 'simulation_id = {0}'.format(simulation_id))
-		if goss_message == None or goss_message == '' or type(goss_message) != str:
-			raise ValueError(
-				'goss_message must be a nonempty string.\n'
-				+ 'goss_message = {0}'.format(goss_message))
-		try:
-        goss_message_format = yaml.safe_load(goss_message)
-        if type(goss_message_format) != dict:
-            raise ValueError(
-                'goss_message is not a json formatted string.'
-                + '\ngoss_message = {0}'.format(goss_message))
-        fncs_input_topic = '{0}/fncs_input'.format(simulation_id)
-        fncs_input_message = {"{}".format(simulation_id) : {}}
-		measurement_values = goss_message_format["message"]["measurements"]
-			for y in measurement_values:
-				magnitude = y.get["magnitude"]
-				measurement_mRID = y.get["measurement_mrid"]
-		
-	 def assign_val_m(self, data_type, group, variation, index, name, description, measurement_type, measurement_id,magnitude): # function for measurement key values
-        records = dict()
+        try:
+            message_str = 'received message '+str(msg)
+
+            if simulation_id == None or simulation_id == '' or type(simulation_id) != str:
+                raise ValueError(
+                    'simulation_id must be a nonempty string.\n'
+                    + 'simulation_id = {0}'.format(simulation_id))
+
+            json_msg = yaml.safe_load(str(msg))
+
+
+            if goss_message == None or goss_message == '' or type(goss_message) != str:
+                raise ValueError(
+                    'goss_message must be a nonempty string.\n'
+                    + 'goss_message = {0}'.format(goss_message))
+
+            goss_message_format = yaml.safe_load(goss_message)
+
+            if type(goss_message_format) != dict:
+                raise ValueError(
+                    'goss_message is not a json formatted string.'
+                    + '\ngoss_message = {0}'.format(goss_message))
+
+            measurement_values = goss_message_format["message"]["measurements"]
+
+            #We are storing the magnitude and measurement_mRID values to publish in the dnp3 points for measurement key values of model dictionary file.
+            for y in measurement_values:
+                magnitude_value = y.get["magnitude"]
+                measurement_mRID = y.get["measurement_mrid"]
+
+
+        except Exception as ex:
+            _send_simulation_status("ERROR", "An error occured while trying to translate the  message received", "ERROR")
+            _send_simulation_status("ERROR", str(ex), "ERROR")
+        
+    def assign_val_m(self, data_type, group, variation, index, name, description, measurement_type, measurement_id,magnitude):
+        """ This method is to initialize  parameters to be used for generating  output  points for measurement key values """
+        records = dict()  # type: Dict[str, Any]
         records["data_type"] = data_type
         records["index"] = index
         records["group"] = group
@@ -77,11 +101,11 @@ class dnp3_mapping():
         records["name"] = name
         records["measurement_type"] = measurement_type
         records["measurement_id"] = measurement_id
-		records["magnitude"] = magnitude
-        self.out_json.append(records)	
-       	
-    def assign_val(self, data_type, group, variation, index, name, description, measurement_type, measurement_id): 
-		# function for ouput points
+        records["magnitude"] = magnitude
+        self.out_json.append(records)
+           
+    def assign_val(self, data_type, group, variation, index, name, description, measurement_type, measurement_id):
+        """ This method is to initialize  parameters to be used for generating  output  points for output points"""
         records = dict()
         records["data_type"] = data_type
         records["index"] = index
@@ -94,8 +118,7 @@ class dnp3_mapping():
         self.out_json.append(records)
 
     def assign_valc(self, data_type, group, variation, index, name, description, object_id, attribute):
-        # type: (object, char, int, int, object, object, object, object) -> object
-        # for control input points -capacitors, switches,regulators
+        """ This method is to initialize  parameters to be used for  generating  dnp3 control/command as Analog/Binary Input points"""
         records = dict()
         records["data_type"] = data_type
         records["index"] = index
@@ -113,8 +136,9 @@ class dnp3_mapping():
         json.dump(out_dict, fp, indent=2, sort_keys=True)
 
     def _create_dnp3_object_map(self):
+        """This method creates the points by taking the input data from model dictionary file"""
         feeders = self.file_dict.get("feeders", [])
-        for x in feeders:  # reading model.dict json file
+        for x in feeders:
             measurements = x.get("measurements", [])
             capacitors = x.get("capacitors", [])
             regulators = x.get("regulators", [])
@@ -130,11 +154,19 @@ class dnp3_mapping():
                 'phases']
 
             if m['MeasurementClass'] == "Analog" and measurement_mRID == measurement_id:
-                self.assign_val_m("AO", 42, 3, self.c_ao, name, description, measurement_type, measurement_id, magnitude)
-                self.c_ao += 1
-            elif m['MeasurementClass'] == "Discrete" and measurement_mRID == measurement_id:
-                self.assign_val_m("BO", 11, 1, self.c_bo, name, description, measurement_type, measurement_id, magnitude)
-                self.c_bo += 1
+                #Checking if magnitude value in CIM message from output topic has a null value
+                if(magnitude_value == Null):
+                    self.assign_val("AO", 42, 3, self.c_ao, name, description, measurement_type, measurement_id)
+                else:
+                    self.assign_val_m("AO", 42, 3, self.c_ao, name, description, measurement_type, measurement_id, magnitude)
+            self.c_ao += 1
+            if m['MeasurementClass'] == "Discrete" and measurement_mRID == measurement_id:
+                if (magnitude_value == Null):
+                    self.assign_val("BO", 11, 1, self.c_bo, name, description, measurement_type, measurement_id) # print the magnitude value if its not null
+                else:
+                    self.assign_val_m("BO", 11, 1, self.c_bo, name, description, measurement_type, measurement_id,
+                                      magnitude)
+             self.c_bo += 1
 
         for m in capacitors:
             object_id = m.get("mRID")
@@ -143,13 +175,12 @@ class dnp3_mapping():
             description1 = "Capacitor, " + m['name'] + "," + "phase -" + m['phases']
             cap_attribute = attribute_map['capacitors']['attribute']  # type: List[str]
             for l in range(0, 4):
-                self.assign_valc("AI", 32, 3, self.c_ai, name, description1, object_id,
-                                 attribute_map['capacitors']['attribute'][l])
+                # publishing attribute value for capacitors as Bianry/Analog Input points based on phase dependent attribute_map values
+                self.assign_valc("AI", 32, 3, self.c_ai, name, description1, object_id,cap_attribute[l])
                 self.c_ai += 1
                 for j in range(0, len(m['phases'])):
                     description = "Capacitor, " + m['name'] + "," + "phase -" + phase_value[j]
-                    self.assign_valc("BI", 2, 1, self.c_bi, name, description, object_id,
-                                     attribute_map['capacitors']['attribute'][4])
+                    self.assign_valc("BI", 2, 1, self.c_bi, name, description, object_id,cap_attribute[4])
                     self.c_bi += 1
 
         for m in solarpanels:
