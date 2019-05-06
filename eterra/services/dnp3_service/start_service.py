@@ -89,7 +89,7 @@ class Processor(object):
         pt_dict = {pt.index: pt for pt in block_points}
         for ind in range(point_def.selector_block_start, point_def.selector_block_end):
             if ind == point_def.index:
-                pass                # Don't overwrite the selector block's main point (i.e., its edit selector)
+                pass  # Don't overwrite the selector block's main point (i.e., its edit selector)
             elif ind in pt_dict:
                 self.add_to_current_values(pt_dict[ind])
             else:
@@ -190,7 +190,6 @@ class Processor(object):
 
 
 def start_outstation(outstation_config, processor):
-
     dnp3_outstation = DNP3Outstation('0.0.0.0', 20000, outstation_config)
     dnp3_outstation.set_agent(processor)
     dnp3_outstation.start()
@@ -250,7 +249,7 @@ if __name__ == '__main__':
     point_def = PointDefinitions()
     point_def.load_points(points)
     processor = Processor(point_def)
-    #point_def.load_points(points)
+    # point_def.load_points(points)
 
     outstation = start_outstation(oustation, processor)
 
@@ -259,4 +258,3 @@ if __name__ == '__main__':
             sleep(0.01)
     finally:
         outstation.shutdown()
-

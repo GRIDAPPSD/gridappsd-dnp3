@@ -47,9 +47,9 @@ DEFAULT_LOCAL_IP = "0.0.0.0"
 DEFAULT_PORT = 20000
 
 # PointDefinition.fcodes values:
-DIRECT_OPERATE = 'direct_operate'       # This is actually DIRECT OPERATE / RESPONSE
-SELECT = 'select'                       # This is actually SELECT / RESPONSE
-OPERATE = 'operate'                     # This is actually OPERATE / RESPONSE
+DIRECT_OPERATE = 'direct_operate'  # This is actually DIRECT OPERATE / RESPONSE
+SELECT = 'select'  # This is actually SELECT / RESPONSE
+OPERATE = 'operate'  # This is actually OPERATE / RESPONSE
 
 # Some PointDefinition.point_type values:
 POINT_TYPE_ANALOG_INPUT = 'Analog Input'
@@ -136,36 +136,39 @@ GROUP_AND_VARIATIONS = {
 
 POINT_TYPES_BY_GROUP = {
     # Single-Bit Binary: See DNP3 spec, Section A.2-A.5 and Table 11-17
-    1: POINT_TYPE_BINARY_INPUT,         # Binary Input (static): Reporting the present value of a single-bit binary object
-    2: POINT_TYPE_BINARY_INPUT,         # Binary Input Event: Reporting single-bit binary input events and flag bit changes
+    1: POINT_TYPE_BINARY_INPUT,  # Binary Input (static): Reporting the present value of a single-bit binary object
+    2: POINT_TYPE_BINARY_INPUT,  # Binary Input Event: Reporting single-bit binary input events and flag bit changes
     # Double-Bit Binary: See DNP3 spec, Section A.4 and Table 11-15
-    3: 'Double Bit Binary',             # Double-Bit Binary Input (static): Reporting present state value
-    4: 'Double Bit Binary',             # Double-Bit Binary Input Event: Reporting double-bit binary input events and flag bit changes
+    3: 'Double Bit Binary',  # Double-Bit Binary Input (static): Reporting present state value
+    4: 'Double Bit Binary',
+    # Double-Bit Binary Input Event: Reporting double-bit binary input events and flag bit changes
     # Binary Output: See DNP3 spec, Section A.6-A.9 and Table 11-12
-    10: POINT_TYPE_BINARY_OUTPUT,       # Binary Output (static): Reporting the present output status
-    11: POINT_TYPE_BINARY_OUTPUT,       # Binary Output Event: Reporting changes to the output status or flag bits
-    12: POINT_TYPE_BINARY_OUTPUT,       # Binary Output Command: Issuing control commands
-    13: POINT_TYPE_BINARY_OUTPUT,       # Binary Output Command Event: Reporting control command was issued regardless of its source
+    10: POINT_TYPE_BINARY_OUTPUT,  # Binary Output (static): Reporting the present output status
+    11: POINT_TYPE_BINARY_OUTPUT,  # Binary Output Event: Reporting changes to the output status or flag bits
+    12: POINT_TYPE_BINARY_OUTPUT,  # Binary Output Command: Issuing control commands
+    13: POINT_TYPE_BINARY_OUTPUT,
+    # Binary Output Command Event: Reporting control command was issued regardless of its source
     # Counter: See DNP3 spec, Section A.10-A.13 and Table 11-13
-    20: 'Counter',                      # Counter: Reporting the count value
-    21: 'Counter',                      # Frozen Counter: Reporting the frozen count value or changed flag bits
-    22: 'Counter',                      # Counter Event: Reporting counter events
-    23: 'Counter',                      # Frozen Counter Event: Reporting frozen counter events
+    20: 'Counter',  # Counter: Reporting the count value
+    21: 'Counter',  # Frozen Counter: Reporting the frozen count value or changed flag bits
+    22: 'Counter',  # Counter Event: Reporting counter events
+    23: 'Counter',  # Frozen Counter Event: Reporting frozen counter events
     # Analog Input: See DNP3 spec, Section A.14-A.18 and Table 11-9
-    30: POINT_TYPE_ANALOG_INPUT,        # Analog Input (static): Reporting the present value
-    31: POINT_TYPE_ANALOG_INPUT,        # Frozen Analog Input (static): Reporting the frozen value
-    32: POINT_TYPE_ANALOG_INPUT,        # Analog Input Event: Reporting analog input events or changes to the flag bits
-    33: POINT_TYPE_ANALOG_INPUT,        # Frozen Analog Input Event: Reporting frozen analog input events
-    34: POINT_TYPE_ANALOG_INPUT,        # Analog Input Reporting Deadband (static): Reading and writing analog deadband values
+    30: POINT_TYPE_ANALOG_INPUT,  # Analog Input (static): Reporting the present value
+    31: POINT_TYPE_ANALOG_INPUT,  # Frozen Analog Input (static): Reporting the frozen value
+    32: POINT_TYPE_ANALOG_INPUT,  # Analog Input Event: Reporting analog input events or changes to the flag bits
+    33: POINT_TYPE_ANALOG_INPUT,  # Frozen Analog Input Event: Reporting frozen analog input events
+    34: POINT_TYPE_ANALOG_INPUT,  # Analog Input Reporting Deadband (static): Reading and writing analog deadband values
     # Analog Output: See DNP3 spec, Section A.19-A.22 and Table 11-10
-    40: POINT_TYPE_ANALOG_OUTPUT,       # Analog Output Status (static): Reporting present value of analog outputs
-    41: POINT_TYPE_ANALOG_OUTPUT,       # Analog Output (command): Controlling analog output values
-    42: POINT_TYPE_ANALOG_OUTPUT,       # Analog Output Event: Reporting changes to the analog output or flag bits
-    43: POINT_TYPE_ANALOG_OUTPUT,       # Analog Output Command Event: Reporting output points being commanded from any source
+    40: POINT_TYPE_ANALOG_OUTPUT,  # Analog Output Status (static): Reporting present value of analog outputs
+    41: POINT_TYPE_ANALOG_OUTPUT,  # Analog Output (command): Controlling analog output values
+    42: POINT_TYPE_ANALOG_OUTPUT,  # Analog Output Event: Reporting changes to the analog output or flag bits
+    43: POINT_TYPE_ANALOG_OUTPUT,
+    # Analog Output Command Event: Reporting output points being commanded from any source
     # Time and Date: See DNP3 spec, Section A.23-A.25
     50: 'Time And Date',
-    51: 'Time And Date',                # Time and Date Common Time-of-Occurrence
-    52: 'Time And Date',                # Time Delay
+    51: 'Time And Date',  # Time and Date Common Time-of-Occurrence
+    52: 'Time And Date',  # Time Delay
     # Class Objects: See DNP3 spec, Section A.26
     60: 'Class Objects',
     # File-Control: See DNP3 spec, Section A.27
@@ -186,19 +189,19 @@ POINT_TYPES_BY_GROUP = {
     # Floating-Point (Obsolete): See DNP3 spec, Section A.38
     100: 'Floating-Point',
     # Numeric Static Objects: See DNP3 spec, Section A.39-A.40
-    101: 'BCD',                         # Device-dependent values in Binary-Coded Decimal form (Table 11-11)
+    101: 'BCD',  # Device-dependent values in Binary-Coded Decimal form (Table 11-11)
     102: 'Unsigned Integer',
     # Octet String: See DNP3 spec, Section A.41-A.42 and Table 11-16
-    110: 'Octet String',                # To convey the present value
-    111: 'Octet String',                # Reporting an octet string event
+    110: 'Octet String',  # To convey the present value
+    111: 'Octet String',  # Reporting an octet string event
     # Virtual Terminal: See DNP3 spec, Section A.43-A.44 and Table 11-18
-    112: 'Virtual Terminal',            # Conveying data to the command interpreter at the outstation
-    113: 'Virtual Terminal',            # Conveying data from the command interpreter at the outstation
+    112: 'Virtual Terminal',  # Conveying data to the command interpreter at the outstation
+    113: 'Virtual Terminal',  # Conveying data from the command interpreter at the outstation
     # Security: See DNP3 spec, Section A.45
     120: 'Authentication',
     # Security Statistic: See DNP3 spec, Section A.46-A.47 and Table 11-20
-    121: 'Security Statistic',          # Reporting the current value of the statistics
-    122: 'Security Statistic'           # Reporting changes to the statistics
+    121: 'Security Statistic',  # Reporting the current value of the statistics
+    122: 'Security Statistic'  # Reporting changes to the statistics
 }
 
 _log = logging.getLogger(__name__)
@@ -245,6 +248,7 @@ class PointDefinitions(object):
             Both JavaScript-style comments (//... and /*...*/) and hash (#...) comments are removed.
             Thanks to VOLTTRON volttron/platform/agent/utils.py/strip_comments() for this logic.
         """
+
         def _repl(match):
             return match.group(1) or ''
 
@@ -254,7 +258,7 @@ class PointDefinitions(object):
     def load_points(self, point_definitions_json):
         """Load and cache a dictionary of PointDefinitions, indexed by point_type and point index."""
         try:
-            self._points = {}           # If they're already loaded, force a reload.
+            self._points = {}  # If they're already loaded, force a reload.
             for element in point_definitions_json:
                 # Load a PointDefinition (or subclass) from JSON, and add it to the dictionary of points.
                 # If the point defines an array, load additional definitions for each interior point in the array.
@@ -362,7 +366,7 @@ class PointDefinitions(object):
         """
         point_def_list = self.points_by_name().get(name, None)
         if point_def_list is None:
-            return None                     # No points with that name
+            return None  # No points with that name
 
         if index is not None:
             # Return the PointDefinition with a matching index.
@@ -594,7 +598,7 @@ class ArrayHeadPointDefinition(BasePointDefinition):
         super(ArrayHeadPointDefinition, self).__init__(json_element)
         self.array_points = json_element.get('array_points', None)
         self.array_times_repeated = json_element.get('array_times_repeated', None)
-        self.array_point_definitions = []         # Holds all ArrayPointDefinitions belonging to this array.
+        self.array_point_definitions = []  # Holds all ArrayPointDefinitions belonging to this array.
         self.validate_point()
 
     def validate_point(self):
@@ -714,7 +718,7 @@ class PointValue(object):
         self.function_code = function_code
         self.value = value
         self.point_def = point_def
-        self.index = index          # MESA Array point indexes can differ from the indexes of their PointDefinitions.
+        self.index = index  # MESA Array point indexes can differ from the indexes of their PointDefinitions.
         self.op_type = op_type
 
     def __str__(self):
