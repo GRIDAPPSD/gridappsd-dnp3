@@ -2,9 +2,12 @@ import argparse
 import logging
 import numbers
 import sys
+import json
 from time import sleep
 
 from yaml import safe_load
+
+from dnp3.cim_to_dnp3 import dnp3_mapping
 
 from pydnp3 import opendnp3
 from dnp3.points import (
@@ -236,23 +239,27 @@ def publish_outstation_status(status_string):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
 
-    parser.add_argument('-c', '--config_file', required=True,
-                        type=argparse.FileType('r'),
-                        help="Yaml points and outstation configuration file.")
+    #parser.add_argument('path_to_model_dict', help="Path to model dictionary file")
+    parser.add_argument('simulation_id', help="Simulation id")
     args = parser.parse_args()
 
-    full_dict = safe_load(args.config_file)
-    points = full_dict.get('points')
+    #path_to_model_dict = args.path_to_model_dict
+    simulation_id = args.simulation_id
+
+    #cim_dict = json.load(path_to_dict_file)
+    cim_dict = json.load("/tmp/tmp_gridappsd/"+simulation_id)
+
+    dnp3_object = dnp3_mapping(cim_dict)
+    dnp3_object._create_dnp3_object_map()
+    points = dnp3_object.out_json
     if not points:
         sys.stderr.write("invalid points specified in json configuration file.")
         sys.exit(10)
 
-    oustation = full_dict.get('outstation', {})
+    oustation = dnp3_object.get('outstation', {})
     point_def = PointDefinitions()
     point_def.load_points(points)
     processor = Processor(point_def)
-    print("************************")
-    print(str(point_def))
     # point_def.load_points(points)
 
     outstation = start_outstation(oustation, processor)

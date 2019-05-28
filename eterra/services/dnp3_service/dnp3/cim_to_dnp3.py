@@ -1,10 +1,9 @@
 import json
 import logging
-import yaml
 import argparse
 
-from gridappsd.topics import fncs_input_topic, fncs_output_topic
-from typing import List, Dict, Union, Any
+#from gridappsd.topics import fncs_input_topic, fncs_output_topic
+# from typing import List, Dict, Union, Any
 
 out_json = list()
 
@@ -65,6 +64,7 @@ class dnp3_mapping():
                 raise ValueError(
                     ' is not a json formatted string.'
                     + '\njson_msg = {0}'.format(json_msg))
+
 
             measurement_values = json_msg["message"]["measurements"]
             print(measurement_values)

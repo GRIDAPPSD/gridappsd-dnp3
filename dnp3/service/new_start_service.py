@@ -2,10 +2,14 @@ import argparse
 import logging
 import numbers
 import sys
+import json
 from time import sleep
 
 from yaml import safe_load
 
+# from dnp3.cim_to_dnp3 import dnp3_mapping
+from dnp3.test import dnp3_mapping
+#
 from pydnp3 import opendnp3
 from dnp3.points import (
     PointArray, PointDefinitions, PointDefinition, DNP3Exception, POINT_TYPE_ANALOG_INPUT, POINT_TYPE_BINARY_INPUT
@@ -227,7 +231,36 @@ def load_point_definitions(self):
             self.point_definitions = PointDefinitions(point_definitions_path=self._local_point_definitions_path)
         else:
             raise DNP3Exception("Failed to load point definitions from config store: {}".format(err))
+def json_load_byteified(file_handle):
+    return _byteify(
+        json.load(file_handle, object_hook=_byteify),
+        ignore_dicts=True
+    )
 
+
+def json_loads_byteified(json_text):
+    return _byteify(
+        json.loads(json_text, object_hook=_byteify),
+        ignore_dicts=True
+    )
+
+
+def _byteify(data, ignore_dicts=False):
+    # if this is a unicode string, return its string representation
+    if isinstance(data, unicode):
+        return data.encode('utf-8')
+    # if this is a list of values, return list of byteified values
+    if isinstance(data, list):
+        return [_byteify(item, ignore_dicts=True) for item in data]
+    # if this is a dictionary, return dictionary of byteified keys and values
+    # but only if we haven't already byteified it
+    if isinstance(data, dict) and not ignore_dicts:
+        return {
+            _byteify(key, ignore_dicts=True): _byteify(value, ignore_dicts=True)
+            for key, value in data.iteritems()
+        }
+    # if it's anything else, return it in its original form
+    return data
 
 def publish_outstation_status(status_string):
     print(status_string)
@@ -236,24 +269,34 @@ def publish_outstation_status(status_string):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
 
-    parser.add_argument('-c', '--config_file', required=True,
-                        type=argparse.FileType('r'),
-                        help="Yaml points and outstation configuration file.")
-    args = parser.parse_args()
 
-    full_dict = safe_load(args.config_file)
-    points = full_dict.get('points')
+    parser.add_argument('simulation_id', help="Simulation id")
+    parser.add_argument('request', help="Path to model dictionary file")
+
+    opts = parser.parse_args()
+    #path_to_model_dict = args.path_to_model_dict
+    simulation_id = opts.simulation_id
+
+    filepath = "/tmp/gridappsd_tmp/{}/model_dict.json".format(simulation_id)
+
+    with open(filepath) as fp:
+        cim_dict = json_load_byteified(fp)
+    # cim_dict = str("/tmp/gridappsd_tmp/"+simulation_id)/"model_dict.json"
+    # request = json.loads(opts.request.replace("\'", ""))
+
+    dnp3_object = dnp3_mapping(cim_dict)
+    print(dnp3_object)
+    dnp3_object._create_cim_object_map(cim_dict)
+    points = dnp3_object.out_json
     if not points:
         sys.stderr.write("invalid points specified in json configuration file.")
         sys.exit(10)
 
-    oustation = full_dict.get('outstation', {})
+    oustation = dnp3_object.get('outstation', {})
     point_def = PointDefinitions()
     point_def.load_points(points)
     processor = Processor(point_def)
-    print("************************")
-    print(str(point_def))
-    # point_def.load_points(points)
+
 
     outstation = start_outstation(oustation, processor)
 
