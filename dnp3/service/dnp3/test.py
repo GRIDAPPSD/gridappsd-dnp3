@@ -30,9 +30,7 @@ class dnp3_mapping():
         self.c_ai = 0
         self.c_bi = 0
         self.out_json = list()
-
-        with open(map_file, "r") as f:
-            self.file_dict = json_load_byteified(f)
+        self.file_dict = map_file
 
     def assign_val(self, data_type, group, variation, index, name, description, measurement_type, measurement_id):
         records = dict()
@@ -99,25 +97,25 @@ class dnp3_mapping():
             description1 = "Capacitor, " + m['name'] + "," + "phase -" + m['phases']
             cap_attribute = attribute_map['capacitors']['attribute']
             for l in range(0, 4):
-                self.assign_valc("AI", 32, 3, self.c_ai, name, description1, object_id, attribute_map['capacitors']['attribute'][l])
+                self.assign_valc("AI", 30, 3, self.c_ai, name, description1, object_id, attribute_map['capacitors']['attribute'][l])
                 self.c_ai += 1
             for j in range(0, len(m['phases'])):
                 description = "Capacitor, " + m['name'] + "," + "phase -" + phase_value[j]
-                self.assign_valc("BI", 2, 1, self.c_bi, name, description, object_id, attribute_map['capacitors']['attribute'][4])
+                self.assign_valc("BI", 1, 1, self.c_bi, name, description, object_id, attribute_map['capacitors']['attribute'][4])
                 self.c_bi += 1
 
             for m in solarpanels:
                 measurement_id = m.get("mRID")
                 name = m.get("name")
                 description = "Solarpanel " + m['name'] + "phases - " + m['phases']
-                self.assign_val("AI", 32, 3, self.c_ai, name, description, None, measurement_id)
+                self.assign_val("AI", 30, 3, self.c_ai, name, description, None, measurement_id)
                 self.c_ai += 1
 
             for m in batteries:
                 measurement_id = m.get("mRID")
                 name = m.get("name")
                 description = "Battery, " + m['name'] + "phases - " + m['phases']
-                self.assign_val("AI", 32, 3, self.c_ai, name, description, None, measurement_id)
+                self.assign_val("AI", 30, 3, self.c_ai, name, description, None, measurement_id)
                 self.c_ai += 1
 
             for m in switches:
@@ -126,7 +124,7 @@ class dnp3_mapping():
                 for k in range(0, len(m['phases'])):
                     phase_value = list(m['phases'])
                     description = "Switch, " + m['name'] + "phases - " + phase_value[k]
-                    self.assign_valc("BI", 2, 1, self.c_bi, name, description, object_id, attribute_map['switches']['attribute'])
+                    self.assign_valc("BI", 1, 1, self.c_bi, name, description, object_id, attribute_map['switches']['attribute'])
                     self.c_bi += 1
 
             for m in regulators:
@@ -136,14 +134,14 @@ class dnp3_mapping():
                 description = "Regulator, " + m['bankName'] + " " + "phase is  -  " + m['bankPhases']
                 for n in range(0, 5):
                     object_id = m.get("mRID")
-                    self.assign_valc("AI", 32, 3, self.c_ai, name, description, object_id[0], reg_attribute[n])
+                    self.assign_valc("AI", 30, 3, self.c_ai, name, description, object_id[0], reg_attribute[n])
                     self.c_ai += 1
                 for i in range(4, 7):
                     reg_phase_attribute = attribute_map['regulators']['attribute'][i]
                     for j in range(0, len(m['bankPhases'])):
                         description = "Regulator, " + m['tankName'][j] + " " "phase is  -  " + m['bankPhases'][j]
                         object_id = m.get("mRID")
-                        self.assign_valc("AI", 32, 3, self.c_ai, name, description, object_id[j], reg_phase_attribute)
+                        self.assign_valc("AI", 30, 3, self.c_ai, name, description, object_id[j], reg_phase_attribute)
                         self.c_ai += 1
 
         return self.out_json
@@ -186,23 +184,23 @@ def _byteify(data, ignore_dicts=False):
 # a = outfile._create_cim_object_map()
 # outfile.load_json(a,'newpoints.json')
 
-def _main(simulation_id, input_file=  None, out_file = None):
-    print(" I am here ")
-    outfile = dnp3_mapping(input_file)
-    a = outfile._create_cim_object_map()
-    outfile.load_json(a, out_file)
-
-def _get_opts():
-    parser = argparse.ArgumentParser()
-    parser.add_argument("simulation_id", help="The simulation id to use for responses on the message bus.")
-    parser.add_argument("input_file", help='The input dictionary file with measurements.')
-    parser.add_argument("out_file", help='The output json file having dnp3 points.')
-    opts = parser.parse_args()
-    return opts
-
-if __name__ == "__main__":
-    opts = _get_opts()
-    print("Alka")
-    simulation_id = opts.simulation_id
-    out_file = opts.out_file
-    _main(simulation_id, opts.input_file, opts.out_file)
+# def _main(simulation_id, input_file=  None, out_file = None):
+#     print(" I am here ")
+#     outfile = dnp3_mapping(input_file)
+#     a = outfile._create_cim_object_map()
+#     outfile.load_json(a, out_file)
+#
+# def _get_opts():
+#     parser = argparse.ArgumentParser()
+#     parser.add_argument("simulation_id", help="The simulation id to use for responses on the message bus.")
+#     parser.add_argument("input_file", help='The input dictionary file with measurements.')
+#     parser.add_argument("out_file", help='The output json file having dnp3 points.')
+#     opts = parser.parse_args()
+#     return opts
+#
+# if __name__ == "__main__":
+#     opts = _get_opts()
+#     print("Alka")
+#     simulation_id = opts.simulation_id
+#     out_file = opts.out_file
+#     _main(simulation_id, opts.input_file, opts.out_file)

@@ -119,8 +119,10 @@ class DNP3Outstation(opendnp3.IOutstationApplication):
         # Configure the outstation database of points based on the contents of the data dictionary.
         _log.debug('Configuring the DNP3 Outstation database.')
         db_config = self.stack_config.dbConfig
+        print(self.get_agent())
         for point in self.get_agent().point_definitions.all_points():
             _log.debug("Adding Point: {}".format(point))
+            # print(point)
             if point.point_type == 'Analog Input':
                 cfg = db_config.analog[int(point.index)]
             elif point.point_type == 'Binary Input':
@@ -129,7 +131,13 @@ class DNP3Outstation(opendnp3.IOutstationApplication):
                 # This database's point configuration is limited to Binary and Analog data types.
                 cfg = None
             if cfg:
+                # print(cfg)
+
                 cfg.clazz = point.eclass
+                # print(point.svariation)
+                # print(cfg.svariation)
+                # print(point.evariation)
+                # print(cfg.evariation)
                 cfg.svariation = point.svariation
                 cfg.evariation = point.evariation
 

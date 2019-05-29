@@ -279,24 +279,26 @@ if __name__ == '__main__':
 
     filepath = "/tmp/gridappsd_tmp/{}/model_dict.json".format(simulation_id)
 
-    with open(filepath) as fp:
+
+    with open(filepath, 'rb') as fp:
         cim_dict = json_load_byteified(fp)
     # cim_dict = str("/tmp/gridappsd_tmp/"+simulation_id)/"model_dict.json"
     # request = json.loads(opts.request.replace("\'", ""))
 
     dnp3_object = dnp3_mapping(cim_dict)
-    print(dnp3_object)
-    dnp3_object._create_cim_object_map(cim_dict)
+    dnp3_object._create_cim_object_map()
     points = dnp3_object.out_json
+    # print(points)
     if not points:
         sys.stderr.write("invalid points specified in json configuration file.")
         sys.exit(10)
 
-    oustation = dnp3_object.get('outstation', {})
+    # oustation = dnp3_object.get('outstation', {})
+    oustation = dict()
     point_def = PointDefinitions()
     point_def.load_points(points)
     processor = Processor(point_def)
-
+    # print(processor)
 
     outstation = start_outstation(oustation, processor)
 
