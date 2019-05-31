@@ -22,8 +22,8 @@ In order to add the dnp3 service to the container you will need to modify the do
 
 ````
 #    volumes:
-#      - ~/git/gridappsd-state-estimator/state-estimator:/gridappsd/services/state-estimator
-       - ~/git/gridappsd-state-estimator/state-estimator/state-estimator.config:/gridappsd/services/state-estimator.config
+#       - ~/git/gridappsd-state-estimator/state-estimator:/gridappsd/services/state-estimator
+#       - ~/git/gridappsd-state-estimator/state-estimator/state-estimator.config:/gridappsd/services/state-estimator.config
 
      volumes:
        - ~/git/gridappsd-dnp3/dnp3:/gridappsd/services/dnp3
