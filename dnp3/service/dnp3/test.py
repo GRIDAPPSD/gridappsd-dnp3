@@ -23,7 +23,7 @@ attribute_map = {
 }
 
 
-class dnp3_mapping():
+class DNP3Mapping():
     def __init__(self, map_file):
         self.c_ao = 0
         self.c_bo = 0

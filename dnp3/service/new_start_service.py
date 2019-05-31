@@ -7,14 +7,19 @@ from time import sleep
 
 from yaml import safe_load
 
-# from dnp3.cim_to_dnp3 import dnp3_mapping
-from dnp3.test import dnp3_mapping
+from dnp3.service.dnp3.cim_to_dnp3 import DNP3Mapping
+#from test import dnp3_mapping
+
+
+from gridappsd import GridAPPSD, DifferenceBuilder, utils
+from gridappsd.topics import fncs_input_topic, fncs_output_topic
+
 #
 from pydnp3 import opendnp3
-from dnp3.points import (
+from dnp3.service.dnp3.points import (
     PointArray, PointDefinitions, PointDefinition, DNP3Exception, POINT_TYPE_ANALOG_INPUT, POINT_TYPE_BINARY_INPUT
 )
-from dnp3.outstation import DNP3Outstation
+from dnp3.service.dnp3.outstation import DNP3Outstation
 
 logging.basicConfig(stream=sys.stdout, level=logging.DEBUG,
                     format='%(asctime)s:%(name)s:%(levelname)s: %(message)s')
@@ -292,8 +297,11 @@ if __name__ == '__main__':
     if not points:
         sys.stderr.write("invalid points specified in json configuration file.")
         sys.exit(10)
-
+    dnp3_mapping = DNP3Mapping()
     # oustation = dnp3_object.get('outstation', {})
+    gapps = GridAPPSD(opts.simulation_id, address=utils.get_gridappsd_address(),
+                      username=utils.get_gridappsd_user(), password=utils.get_gridappsd_pass())
+    gapps.subscribe(fncs_output_topic(simulation_id),dnp3_mapping)
     oustation = dict()
     point_def = PointDefinitions()
     point_def.load_points(points)

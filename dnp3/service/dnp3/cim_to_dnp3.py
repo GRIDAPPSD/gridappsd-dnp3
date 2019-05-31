@@ -2,9 +2,11 @@ import json
 import logging
 import argparse
 import yaml
+import stomp
 
-#from gridappsd.topics import fncs_input_topic, fncs_output_topic
-# from typing import List, Dict, Union, Any
+from gridappsd.topics import fncs_input_topic, fncs_output_topic
+from gridappsd import GridAPPSD, DifferenceBuilder, utils
+from typing import List, Dict, Union, Any
 
 out_json = list()
 
@@ -28,7 +30,7 @@ attribute_map = {
 }
 
 
-class dnp3_mapping():
+class DNP3Mapping():
     """ This creates dnps input and ouput points for incoming CIM messages  and model dictionary file respectively."""
 
     def __init__(self, map_file):
@@ -38,9 +40,8 @@ class dnp3_mapping():
         self.c_bi = 0
         self.magnitude_value = None
         self.measurement_mRID = None
-
-        with open(map_file, "r") as f:
-            self.file_dict = json_load_byteified(f)
+        self.out_json = list()
+        self.file_dict = map_file
 
 
 def on_message(self, headers, msg):
