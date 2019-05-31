@@ -1,6 +1,6 @@
 # GridAPPSD DNP3 service
 
-##Purpose
+## Purpose
 
 The dnp3 service will convert CIM measurements points to dnp3 points to integrate GridAPPS-D and DNP3 based DMS(survalent/eterra) and send the commnad inputs from DMS to GridLAB-D for further simulation.
 
@@ -14,7 +14,7 @@ The dnp3 service will convert CIM measurements points to dnp3 points to integrat
 ~/git
 ├── gridappsd-docker
 └── gridappsd-dnp3	
-````
+```
 
 ## Adding the dnp3 to container
 
@@ -29,5 +29,5 @@ In order to add the dnp3 service to the container you will need to modify the do
        - ~/git/gridappsd-dnp3/dnp3:/gridappsd/services/dnp3
        - ~/git/gridappsd-dnp3/dnp3/dnp3.config:/gridappsd/services/dnp3.config
 
-````
+```
 
