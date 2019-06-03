@@ -1,12 +1,12 @@
 import json
-import logging
-import argparse
 import yaml
-import stomp
+import sys
 
-from gridappsd.topics import fncs_input_topic, fncs_output_topic
-from gridappsd import GridAPPSD, DifferenceBuilder, utils
+
 from typing import List, Dict, Union, Any
+
+from fncs import fncs
+
 
 out_json = list()
 
@@ -44,7 +44,7 @@ class DNP3Mapping():
         self.file_dict = map_file
 
 
-def on_message(self, headers, msg):
+    def on_message(self, simulation_id,message):
         """ This method handles incoming messages on the fncs_output_topic for the simulation_id.
         Parameters
         ----------
@@ -52,29 +52,43 @@ def on_message(self, headers, msg):
             A dictionary of headers that could be used to determine topic of origin and
             other attributes.
         message: object
-            A data structure following the protocol defined in the message structure
-            of ``GridAPPSD``.  Most message payloads will be serialized dictionaries, but that is
-            not a requirement.
-        """
-        message = {}
-        try:
-            message_str = 'received message ' + str(msg)
 
-            json_msg = yaml.safe_load(str(msg))
+        """
+        #message = {}
+
+        try:
+            message_str = 'received message ' + str(message)
+            # output = message  # message[:40] if len(message) else message
+            # print("On message fn called", {output})
+
+            json_msg = yaml.safe_load(str(message))
+
+            print("Alka")
+            print(json_msg)
 
             if type(json_msg) != dict:
                 raise ValueError(
                     ' is not a json formatted string.'
                     + '\njson_msg = {0}'.format(json_msg))
+            print("1111")
 
-
+            fncs_input_message = {"{}".format(simulation_id): {}}
+            print("2222")
             measurement_values = json_msg["message"]["measurements"]
-            print(measurement_values)
+            print("3333")
+            # print(measurement_values)
+            print("4444")
+
+            # print(measurement_values)
 
             # storing the magnitude and measurement_mRID values to publish in the dnp3 points for measurement key values
             for y in measurement_values:
-                self.magnitude_value = y.get["magnitude"]
-                self.measurement_mRID = y.get["measurement_mrid"]
+                self.magnitude_value = y.get("magnitude",[])
+                print("manii")
+                print(self.magnitude_value)
+                print("6666")
+                self.measurement_mRID = y.get("measurement_mrid",[])
+                print(self.measurement_mRID)
 
         except Exception as e:
             message_str = "An error occurred while trying to translate the  message received" + str(e)
@@ -165,25 +179,25 @@ def on_message(self, headers, msg):
             cap_attribute = attribute_map['capacitors']['attribute']  # type: List[str]
             for l in range(0, 4):
                 # publishing attribute value for capacitors as Bianry/Analog Input points based on phase  attribute
-                self.assign_valc("AI", 32, 3, self.c_ai, name, description1, object_id, cap_attribute[l])
+                self.assign_valc("AI", 30, 3, self.c_ai, name, description1, object_id, cap_attribute[l])
                 self.c_ai += 1
                 for j in range(0, len(m['phases'])):
                     description = "Capacitor, " + m['name'] + "," + "phase -" + phase_value[j]
-                    self.assign_valc("BI", 2, 1, self.c_bi, name, description, object_id, cap_attribute[4])
+                    self.assign_valc("BI", 1, 1, self.c_bi, name, description, object_id, cap_attribute[4])
                     self.c_bi += 1
 
         for m in solarpanels:
             measurement_id = m.get("mRID")
             name = m.get("name")
             description = "Solarpanel " + m['name'] + "phases - " + m['phases']
-            self.assign_val("AI", 32, 3, self.c_ai, name, description, None, measurement_id)
+            self.assign_val("AI", 30, 3, self.c_ai, name, description, None, measurement_id)
             self.c_ai += 1
 
         for m in batteries:
             measurement_id = m.get("mRID")
             name = m.get("name")
             description = "Battery, " + m['name'] + "phases - " + m['phases']
-            self.assign_val("AI", 32, 3, self.c_ai, name, description, None, measurement_id)
+            self.assign_val("AI", 30, 3, self.c_ai, name, description, None, measurement_id)
             self.c_ai += 1
 
         for m in switches:
@@ -192,7 +206,7 @@ def on_message(self, headers, msg):
             for k in range(0, len(m['phases'])):
                 phase_value = list(m['phases'])
                 description = "Switch, " + m["name"] + "phases - " + phase_value[k]
-                self.assign_valc("BI", 2, 1, self.c_bi, name, description, object_id,
+                self.assign_valc("BI", 1, 1, self.c_bi, name, description, object_id,
                                  attribute_map['switches']['attribute'])
                 self.c_bi += 1
 
@@ -203,14 +217,14 @@ def on_message(self, headers, msg):
             description = "Regulator, " + m['bankName'] + " " + "phase is  -  " + m['bankPhases']
             for n in range(0, 5):
                 object_id = m.get("mRID")
-                self.assign_valc("AI", 32, 3, self.c_ai, name, description, object_id[0], reg_attribute[n])
+                self.assign_valc("AI", 30, 3, self.c_ai, name, description, object_id[0], reg_attribute[n])
                 self.c_ai += 1
                 for i in range(4, 7):
                     reg_phase_attribute = attribute_map['regulators']['attribute'][i]
                 for j in range(0, len(m['bankPhases'])):
                     description = "Regulator, " + m['tankName'][j] + " " "phase is  -  " + m['bankPhases'][j]
                     object_id = m.get("mRID")
-                    self.assign_valc("AI", 32, 3, self.c_ai, name, description, object_id[j], reg_phase_attribute)
+                    self.assign_valc("AI", 30, 3, self.c_ai, name, description, object_id[j], reg_phase_attribute)
                     self.c_ai += 1
 
         return self.out_json
@@ -233,7 +247,7 @@ def json_loads_byteified(json_text):
 
 def _byteify(data, ignore_dicts=False):
     # if this is a unicode string, return its string representation
-    if isinstance(data, unicode):
+    if isinstance(data, str):
         return data.encode('utf-8')
     # if this is a list of values, return list of byteified values
     if isinstance(data, list):

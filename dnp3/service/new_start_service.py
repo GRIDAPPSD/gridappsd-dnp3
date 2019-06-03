@@ -7,8 +7,8 @@ from time import sleep
 
 from yaml import safe_load
 
-from dnp3.service.dnp3.cim_to_dnp3 import DNP3Mapping
-#from test import dnp3_mapping
+from dnp3.cim_to_dnp3  import DNP3Mapping
+#from dnp3.test import DNP3Mapping
 
 
 from gridappsd import GridAPPSD, DifferenceBuilder, utils
@@ -16,10 +16,10 @@ from gridappsd.topics import fncs_input_topic, fncs_output_topic
 
 #
 from pydnp3 import opendnp3
-from dnp3.service.dnp3.points import (
+from dnp3.points import (
     PointArray, PointDefinitions, PointDefinition, DNP3Exception, POINT_TYPE_ANALOG_INPUT, POINT_TYPE_BINARY_INPUT
 )
-from dnp3.service.dnp3.outstation import DNP3Outstation
+from dnp3.outstation import DNP3Outstation
 
 logging.basicConfig(stream=sys.stdout, level=logging.DEBUG,
                     format='%(asctime)s:%(name)s:%(levelname)s: %(message)s')
@@ -209,6 +209,7 @@ def start_outstation(outstation_config, processor):
     return dnp3_outstation
 
 
+
 def load_point_definitions(self):
     """
         Load and cache a dictionary of PointDefinitions from a json list.
@@ -250,9 +251,10 @@ def json_loads_byteified(json_text):
     )
 
 
+
 def _byteify(data, ignore_dicts=False):
     # if this is a unicode string, return its string representation
-    if isinstance(data, unicode):
+    if isinstance(data, str):
         return data.encode('utf-8')
     # if this is a list of values, return list of byteified values
     if isinstance(data, list):
@@ -269,6 +271,16 @@ def _byteify(data, ignore_dicts=False):
 
 def publish_outstation_status(status_string):
     print(status_string)
+
+# def on_message(headers, message):
+#     message = {}
+#
+#     try:
+#         output = message  # message[:40] if len(message) else message
+#         print("On message fn called" , {output})
+#
+#     except Exception as e:
+#         message_str = "An error occurred while trying to translate the  message received" + str(e)
 
 
 if __name__ == '__main__':
@@ -287,21 +299,19 @@ if __name__ == '__main__':
 
     with open(filepath, 'rb') as fp:
         cim_dict = json_load_byteified(fp)
-    # cim_dict = str("/tmp/gridappsd_tmp/"+simulation_id)/"model_dict.json"
-    # request = json.loads(opts.request.replace("\'", ""))
 
-    dnp3_object = dnp3_mapping(cim_dict)
-    dnp3_object._create_cim_object_map()
+
+    dnp3_object = DNP3Mapping(cim_dict)
+    dnp3_object._create_dnp3_object_map()
     points = dnp3_object.out_json
     # print(points)
     if not points:
         sys.stderr.write("invalid points specified in json configuration file.")
         sys.exit(10)
-    dnp3_mapping = DNP3Mapping()
-    # oustation = dnp3_object.get('outstation', {})
+
     gapps = GridAPPSD(opts.simulation_id, address=utils.get_gridappsd_address(),
                       username=utils.get_gridappsd_user(), password=utils.get_gridappsd_pass())
-    gapps.subscribe(fncs_output_topic(simulation_id),dnp3_mapping)
+    gapps.subscribe(fncs_output_topic(opts.simulation_id),dnp3_object.on_message)
     oustation = dict()
     point_def = PointDefinitions()
     point_def.load_points(points)

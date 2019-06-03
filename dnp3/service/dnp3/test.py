@@ -32,6 +32,7 @@ class DNP3Mapping():
         self.out_json = list()
         self.file_dict = map_file
 
+
     def assign_val(self, data_type, group, variation, index, name, description, measurement_type, measurement_id):
         records = dict()
         records["data_type"] = data_type
@@ -62,7 +63,7 @@ class DNP3Mapping():
             json.dump(out_dict, fp, indent=2, sort_keys=True)
 
     #@property
-    def _create_cim_object_map(self):
+    def _create_dnp3_object_map(self):
         #
         # with open(map_file, "r") as f:
         #     self.file_dict = json_load_byteified(f)
