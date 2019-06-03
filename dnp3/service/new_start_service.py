@@ -325,6 +325,7 @@ if __name__ == '__main__':
     point_def = PointDefinitions()
     point_def.load_points(dnp3_object.out_json)
     processor = Processor(point_def)
+    dnp3_object.load_point_def(processor.point_definitions)
     outstation = start_outstation(oustation, processor)
 
     try:
