@@ -178,7 +178,7 @@ class DNP3Outstation(opendnp3.IOutstationApplication):
 
     @classmethod
     def get_agent(cls):
-        """Return the singleton DNP3Agent or MesaAgent instance."""
+        """Return the singleton DNP3Agent """
         agt = cls.agent
         if agt is None:
             raise ValueError('Outstation has no configured agent')
@@ -186,7 +186,7 @@ class DNP3Outstation(opendnp3.IOutstationApplication):
 
     @classmethod
     def set_agent(cls, agent):
-        """Set the singleton DNP3Agent or MesaAgent instance."""
+        """Set the singleton DNP3Agent """
         cls.agent = agent
 
     @classmethod

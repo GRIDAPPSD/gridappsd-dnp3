@@ -156,6 +156,7 @@ class DNP3Mapping():
             name = m.get("name")
             description = "Equipment is " + m['name'] + "," + m['ConductingEquipment_type'] + " and phase is " + m['phases']
             if m['MeasurementClass'] == "Analog" and self.measurement_mRID == measurement_id:
+                print("sample111")
                 # Checking if magnitude value in CIM message from output topic has a null value
                 if self.magnitude_value is None:
                     self.assign_val("AO", 42, 3, self.c_ao, name, description, measurement_type, measurement_id)
