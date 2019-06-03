@@ -303,21 +303,28 @@ if __name__ == '__main__':
 
     dnp3_object = DNP3Mapping(cim_dict)
     dnp3_object._create_dnp3_object_map()
-    points = dnp3_object.out_json
-    # print(points)
-    if not points:
+
+    with open("/tmp/json_out", 'w') as fp:
+        out_dict = dict({'points': dnp3_object.out_json})
+        json.dump(out_dict, fp, indent=2, sort_keys=True)
+
+    #print(points)
+    if not dnp3_object.out_json:
         sys.stderr.write("invalid points specified in json configuration file.")
         sys.exit(10)
 
+
+
+
     gapps = GridAPPSD(opts.simulation_id, address=utils.get_gridappsd_address(),
                       username=utils.get_gridappsd_user(), password=utils.get_gridappsd_pass())
-    gapps.subscribe(fncs_output_topic(opts.simulation_id),dnp3_object.on_message)
-    oustation = dict()
-    point_def = PointDefinitions()
-    point_def.load_points(points)
-    processor = Processor(point_def)
+    gapps.subscribe(fncs_output_topic(opts.simulation_id),dnp3_object.on_message(point_def))
     # print(processor)
 
+    oustation = dict()
+    point_def = PointDefinitions()
+    point_def.load_points(dnp3_object.out_json)
+    processor = Processor(point_def)
     outstation = start_outstation(oustation, processor)
 
     try:

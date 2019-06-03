@@ -38,13 +38,12 @@ class DNP3Mapping():
         self.c_bo = 0
         self.c_ai = 0
         self.c_bi = 0
-        self.magnitude_value = None
-        self.measurement_mRID = None
+        self.measurements = dict()
         self.out_json = list()
         self.file_dict = map_file
 
 
-    def on_message(self, simulation_id,message):
+    def on_message(self, points, simulation_id,message):
         """ This method handles incoming messages on the fncs_output_topic for the simulation_id.
         Parameters
         ----------
@@ -83,17 +82,17 @@ class DNP3Mapping():
 
             # storing the magnitude and measurement_mRID values to publish in the dnp3 points for measurement key values
             for y in measurement_values:
-                self.magnitude_value = y.get("magnitude",[])
-                print("manii")
-                print(self.magnitude_value)
-                print("6666")
-                self.measurement_mRID = y.get("measurement_mrid",[])
+                print(y)
+                if "magnitude" in y.keys():
+                    self.measurements[y.get("measurement_mrid")] = y.get("magnitude")
+                if "value" in y.keys():
+                    self.measurements[y.get("measurement_mrid")] = y.get("value")
                 print(self.measurement_mRID)
 
         except Exception as e:
             message_str = "An error occurred while trying to translate the  message received" + str(e)
 
-    def assign_val_m(self, data_type, group, variation, index, name, description, measurement_type, measurement_id,
+    def assign_val_a(self, data_type, group, variation, index, name, description, measurement_type, measurement_id,
                      magnitude):
         """ Method is to initialize  parameters to be used for generating  output  points for measurement key values """
         records = dict()  # type: Dict[str, Any]
@@ -105,10 +104,10 @@ class DNP3Mapping():
         records["name"] = name
         records["measurement_type"] = measurement_type
         records["measurement_id"] = measurement_id
-        records["magnitude"] = self.magnitude_value
+        records["magnitude"] = "0"
         self.out_json.append(records)
 
-    def assign_val(self, data_type, group, variation, index, name, description, measurement_type, measurement_id):
+    def assign_val_d(self, data_type, group, variation, index, name, description, measurement_type, measurement_id):
         """ This method is to initialize  parameters to be used for generating  output  points for output points"""
         records = dict()
         records["data_type"] = data_type
@@ -119,6 +118,7 @@ class DNP3Mapping():
         records["name"] = name
         records["measurement_type"] = measurement_type
         records["measurement_id"] = measurement_id
+        records["value"] = "0"
         self.out_json.append(records)
 
     def assign_valc(self, data_type, group, variation, index, name, description, object_id, attribute):
@@ -155,22 +155,15 @@ class DNP3Mapping():
             measurement_id = m.get("mRID")
             name = m.get("name")
             description = "Equipment is " + m['name'] + "," + m['ConductingEquipment_type'] + " and phase is " + m['phases']
-            if m['MeasurementClass'] == "Analog" and self.measurement_mRID == measurement_id:
-                print("sample111")
-                # Checking if magnitude value in CIM message from output topic has a null value
-                if self.magnitude_value is None:
-                    self.assign_val("AO", 42, 3, self.c_ao, name, description, measurement_type, measurement_id)
-                else:
-                    self.assign_val_m("AO", 42, 3, self.c_ao, name, description, measurement_type, measurement_id, self.magnitude_value)
-            self.c_ao += 1
+            print("testmsg73 mRID = ", self.measurement_mRID, " id = ", measurement_id, " value = ", self.magnitude_value)
+            if m['MeasurementClass'] == "Analog" and measurement_id in self.measurements.keys():
+                self.assign_val_a("AO", 42, 3, self.c_ao, name, description, measurement_type, measurement_id)
+                self.c_ao += 1
 
-            if m['MeasurementClass'] == "Discrete" and self.measurement_mRID == measurement_id:
-                if self.magnitude_value is None:
-                    self.assign_val("BO", 11, 1, self.c_bo, name, description, measurement_type,
-                                    measurement_id)  # print the magnitude value if its not null
-                else:
-                    self.assign_val_m("BO", 11, 1, self.c_bo, name, description, measurement_type, measurement_id, self.magnitude_value)
-                    self.c_bo += 1
+            if m['MeasurementClass'] == "Discrete" and measurement_id in self.measurements.keys():
+                self.assign_val_d("BO", 11, 1, self.c_bo, name, description, measurement_type, measurement_id)
+                self.c_bo += 1
+
 
         for m in capacitors:
             object_id = m.get("mRID")
