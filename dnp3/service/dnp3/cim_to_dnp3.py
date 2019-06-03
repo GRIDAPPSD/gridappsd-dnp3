@@ -7,6 +7,9 @@ from typing import List, Dict, Union, Any
 
 from fncs import fncs
 
+from points import (
+    PointArray, PointDefinitions, PointDefinition, DNP3Exception, POINT_TYPE_ANALOG_INPUT, POINT_TYPE_BINARY_INPUT
+)
 
 out_json = list()
 
@@ -41,6 +44,7 @@ class DNP3Mapping():
         self.measurements = dict()
         self.out_json = list()
         self.file_dict = map_file
+        self.processor_point_def = PointDefinition()
 
 
     def on_message(self, simulation_id,message):
@@ -76,7 +80,6 @@ class DNP3Mapping():
 
             # storing the magnitude and measurement_mRID values to publish in the dnp3 points for measurement key values
             for y in measurement_values:
-                print(y)
                 if "magnitude" in y.keys():
                     self.measurements[y.get("measurement_mrid")] = y.get("magnitude")
                 if "value" in y.keys():
@@ -131,6 +134,9 @@ class DNP3Mapping():
         with open(out_file, 'w') as fp:
             out_dict = dict({'points': out_json})
             json.dump(out_dict, fp, indent=2, sort_keys=True)
+
+    def load_point_def(self, point_def):
+        self.processor_point_def = point_def
 
     def _create_dnp3_object_map(self):
         """This method creates the points by taking the input data from model dictionary file"""
