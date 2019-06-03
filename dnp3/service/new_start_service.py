@@ -318,7 +318,7 @@ if __name__ == '__main__':
 
     gapps = GridAPPSD(opts.simulation_id, address=utils.get_gridappsd_address(),
                       username=utils.get_gridappsd_user(), password=utils.get_gridappsd_pass())
-    gapps.subscribe(fncs_output_topic(opts.simulation_id),dnp3_object.on_message(point_def))
+    gapps.subscribe(fncs_output_topic(opts.simulation_id),dnp3_object.on_message)
     # print(processor)
 
     oustation = dict()

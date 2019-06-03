@@ -43,7 +43,7 @@ class DNP3Mapping():
         self.file_dict = map_file
 
 
-    def on_message(self, points, simulation_id,message):
+    def on_message(self, simulation_id,message):
         """ This method handles incoming messages on the fncs_output_topic for the simulation_id.
         Parameters
         ----------
@@ -72,13 +72,7 @@ class DNP3Mapping():
             print("1111")
 
             fncs_input_message = {"{}".format(simulation_id): {}}
-            print("2222")
             measurement_values = json_msg["message"]["measurements"]
-            print("3333")
-            # print(measurement_values)
-            print("4444")
-
-            # print(measurement_values)
 
             # storing the magnitude and measurement_mRID values to publish in the dnp3 points for measurement key values
             for y in measurement_values:
@@ -87,7 +81,6 @@ class DNP3Mapping():
                     self.measurements[y.get("measurement_mrid")] = y.get("magnitude")
                 if "value" in y.keys():
                     self.measurements[y.get("measurement_mrid")] = y.get("value")
-                print(self.measurement_mRID)
 
         except Exception as e:
             message_str = "An error occurred while trying to translate the  message received" + str(e)
