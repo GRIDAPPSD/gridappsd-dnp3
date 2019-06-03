@@ -81,9 +81,13 @@ class DNP3Mapping():
             # storing the magnitude and measurement_mRID values to publish in the dnp3 points for measurement key values
             for y in measurement_values:
                 if "magnitude" in y.keys():
-                    self.measurements[y.get("measurement_mrid")] = y.get("magnitude")
-                if "value" in y.keys():
-                    self.measurements[y.get("measurement_mrid")] = y.get("value")
+                    for point in self.processor_point_def:
+                        if y.get("measurement_mrid") in point.keys():
+                            point["magnitude"] = y.get("magnitude")
+                elif "value" in y.keys():
+                    for point in self.processor_point_def:
+                        if y.get("measurement_mrid") in point.keys():
+                            point["value"] = y.get("value")
 
         except Exception as e:
             message_str = "An error occurred while trying to translate the  message received" + str(e)
