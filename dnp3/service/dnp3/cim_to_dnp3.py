@@ -44,7 +44,7 @@ class DNP3Mapping():
         self.measurements = dict()
         self.out_json = list()
         self.file_dict = map_file
-        self.processor_point_def = PointDefinition()
+        self.processor_point_def = PointDefinitions()
 
 
     def on_message(self, simulation_id,message):
@@ -81,19 +81,22 @@ class DNP3Mapping():
             # storing the magnitude and measurement_mRID values to publish in the dnp3 points for measurement key values
             for y in measurement_values:
                 if "magnitude" in y.keys():
-                    for point in self.processor_point_def:
-                        if y.get("measurement_mrid") in point.keys():
-                            point["magnitude"] = y.get("magnitude")
+                    print("232jsj")
+                    for point in self.processor_point_def.all_points():
+                        print("test3456", point)
+                        # if y.get("measurement_mrid") in point.keys():
+                        #     point["magnitude"] = y.get("magnitude")
+                        #     print("magnitude = ", point["magnitude"])
                 elif "value" in y.keys():
-                    for point in self.processor_point_def:
+                    for point in self.processor_point_def.all_points():
                         if y.get("measurement_mrid") in point.keys():
                             point["value"] = y.get("value")
+                            print("value = ", point["value"])
 
         except Exception as e:
             message_str = "An error occurred while trying to translate the  message received" + str(e)
 
-    def assign_val_a(self, data_type, group, variation, index, name, description, measurement_type, measurement_id,
-                     magnitude):
+    def assign_val_a(self, data_type, group, variation, index, name, description, measurement_type, measurement_id):
         """ Method is to initialize  parameters to be used for generating  output  points for measurement key values """
         records = dict()  # type: Dict[str, Any]
         records["data_type"] = data_type
@@ -158,12 +161,11 @@ class DNP3Mapping():
             measurement_id = m.get("mRID")
             name = m.get("name")
             description = "Equipment is " + m['name'] + "," + m['ConductingEquipment_type'] + " and phase is " + m['phases']
-            print("testmsg73 mRID = ", self.measurement_mRID, " id = ", measurement_id, " value = ", self.magnitude_value)
-            if m['MeasurementClass'] == "Analog" and measurement_id in self.measurements.keys():
+            if m['MeasurementClass'] == "Analog":
                 self.assign_val_a("AO", 42, 3, self.c_ao, name, description, measurement_type, measurement_id)
                 self.c_ao += 1
 
-            if m['MeasurementClass'] == "Discrete" and measurement_id in self.measurements.keys():
+            if m['MeasurementClass'] == "Discrete":
                 self.assign_val_d("BO", 11, 1, self.c_bo, name, description, measurement_type, measurement_id)
                 self.c_bo += 1
 

@@ -324,8 +324,10 @@ if __name__ == '__main__':
     oustation = dict()
     point_def = PointDefinitions()
     point_def.load_points(dnp3_object.out_json)
+    for point in point_def.all_points():
+        print("njan")
     processor = Processor(point_def)
-    dnp3_object.load_point_def(processor.point_definitions)
+    dnp3_object.load_point_def(point_def)
     outstation = start_outstation(oustation, processor)
 
     try:
