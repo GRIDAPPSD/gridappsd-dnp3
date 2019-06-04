@@ -66,14 +66,11 @@ class DNP3Mapping():
 
             json_msg = yaml.safe_load(str(message))
 
-            print("Alka")
-            print(json_msg)
 
             if type(json_msg) != dict:
                 raise ValueError(
                     ' is not a json formatted string.'
                     + '\njson_msg = {0}'.format(json_msg))
-            print("1111")
 
             fncs_input_message = {"{}".format(simulation_id): {}}
             measurement_values = json_msg["message"]["measurements"]
@@ -81,17 +78,13 @@ class DNP3Mapping():
             # storing the magnitude and measurement_mRID values to publish in the dnp3 points for measurement key values
             for y in measurement_values:
                 if "magnitude" in y.keys():
-                    print("232jsj")
                     for point in self.processor_point_def.all_points():
-                        print("test3456", point)
-                        # if y.get("measurement_mrid") in point.keys():
-                        #     point["magnitude"] = y.get("magnitude")
-                        #     print("magnitude = ", point["magnitude"])
+                        if y.get("measurement_mrid") == point.measurement_id:
+                             point.magnitude = y.get("magnitude")
                 elif "value" in y.keys():
                     for point in self.processor_point_def.all_points():
-                        if y.get("measurement_mrid") in point.keys():
-                            point["value"] = y.get("value")
-                            print("value = ", point["value"])
+                        if y.get("measurement_mrid") == point.measurement_id:
+                             point.value = y.get("value")
 
         except Exception as e:
             message_str = "An error occurred while trying to translate the  message received" + str(e)

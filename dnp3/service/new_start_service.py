@@ -304,9 +304,9 @@ if __name__ == '__main__':
     dnp3_object = DNP3Mapping(cim_dict)
     dnp3_object._create_dnp3_object_map()
 
-    with open("/tmp/json_out", 'w') as fp:
-        out_dict = dict({'points': dnp3_object.out_json})
-        json.dump(out_dict, fp, indent=2, sort_keys=True)
+    # with open("/tmp/json_out", 'w') as fp:
+        # out_dict = dict({'points': dnp3_object.out_json})
+        # json.dump(out_dict, fp, indent=2, sort_keys=True)
 
     #print(points)
     if not dnp3_object.out_json:
@@ -324,8 +324,6 @@ if __name__ == '__main__':
     oustation = dict()
     point_def = PointDefinitions()
     point_def.load_points(dnp3_object.out_json)
-    for point in point_def.all_points():
-        print("njan")
     processor = Processor(point_def)
     dnp3_object.load_point_def(point_def)
     outstation = start_outstation(oustation, processor)

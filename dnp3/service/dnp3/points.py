@@ -411,11 +411,17 @@ class BasePointDefinition(object):
     def __init__(self, element_def):
         """Initialize an instance of the PointDefinition from a dictionary of point attributes."""
         self.name = str(element_def.get('name', ''))
-        self.type = element_def.get('type', None)
+        self.data_type = element_def.get('data_type', None)
         self.group = element_def.get('group', None)
         self.variation = element_def.get('variation', None)
         self.index = element_def.get('index', None)
         self.description = element_def.get('description', '')
+        self.measurement_id = element_def.get('measurement_id', None)
+        self.measurement_type = element_def.get('measurement_type', None)
+        self.magnitude = element_def.get('magnitude', None)
+        self.value = element_def.get('value', None)
+
+        #Old, unused data
         self.scaling_multiplier = element_def.get('scaling_multiplier', 1)
         self.units = element_def.get('units', '')
         self.event_class = element_def.get('event_class', 2)
@@ -424,6 +430,7 @@ class BasePointDefinition(object):
         self.selector_block_start = element_def.get('selector_block_start', None)
         self.selector_block_end = element_def.get('selector_block_end', None)
         self.save_on_write = element_def.get('save_on_write', None)
+        self.type = element_def.get('type', None)
 
     @property
     def is_array_point(self):
