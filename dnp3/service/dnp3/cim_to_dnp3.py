@@ -61,12 +61,10 @@ class DNP3Mapping():
 
         try:
             message_str = 'received message ' + str(message)
-            # output = message  # message[:40] if len(message) else message
-            # print("On message fn called", {output})
 
             json_msg = yaml.safe_load(str(message))
 
-
+            print("Alka")
             if type(json_msg) != dict:
                 raise ValueError(
                     ' is not a json formatted string.'
@@ -81,6 +79,7 @@ class DNP3Mapping():
                     for point in self.processor_point_def.all_points():
                         if y.get("measurement_mrid") == point.measurement_id:
                              point.magnitude = y.get("magnitude")
+                             print("test message", point.magnitude, y.get("measurement_mrid"))
                 elif "value" in y.keys():
                     for point in self.processor_point_def.all_points():
                         if y.get("measurement_mrid") == point.measurement_id:

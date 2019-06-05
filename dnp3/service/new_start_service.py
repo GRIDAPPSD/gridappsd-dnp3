@@ -305,15 +305,13 @@ if __name__ == '__main__':
     dnp3_object._create_dnp3_object_map()
 
     # with open("/tmp/json_out", 'w') as fp:
-        # out_dict = dict({'points': dnp3_object.out_json})
-        # json.dump(out_dict, fp, indent=2, sort_keys=True)
+    #     out_dict = dict({'points': dnp3_object.out_json})
+    #     json.dump(out_dict, fp, indent=2, sort_keys=True)
 
     #print(points)
     if not dnp3_object.out_json:
         sys.stderr.write("invalid points specified in json configuration file.")
         sys.exit(10)
-
-
 
 
     gapps = GridAPPSD(opts.simulation_id, address=utils.get_gridappsd_address(),
@@ -326,8 +324,12 @@ if __name__ == '__main__':
     point_def.load_points(dnp3_object.out_json)
     processor = Processor(point_def)
     dnp3_object.load_point_def(point_def)
+    print("Loading ", dnp3_object.load_point_def(point_def))
     outstation = start_outstation(oustation, processor)
-
+    for point in outstation.get_agent().point_definitions.all_points():
+        # print("name = ", point.name, "measurement_id = ", point.measurement_id, "value = ", point.value, "magnitude =", point.magnitude )
+        str = "{}, {} ".format(point.name, point.measurement_id)
+        print(str)
     try:
         while True:
             sleep(0.01)
