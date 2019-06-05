@@ -57,7 +57,6 @@ class DNP3Mapping():
         message: object
 
         """
-        #message = {}
 
         try:
             message_str = 'received message ' + str(message)
@@ -77,12 +76,12 @@ class DNP3Mapping():
             for y in measurement_values:
                 if "magnitude" in y.keys():
                     for point in self.processor_point_def.all_points():
-                        if y.get("measurement_mrid") == point.measurement_id:
+                        if y.get("measurement_mrid") == point.measurement_id and point.magnitude != y.get("magnitude"):
                              point.magnitude = y.get("magnitude")
                              print("test message", point.magnitude, y.get("measurement_mrid"))
                 elif "value" in y.keys():
                     for point in self.processor_point_def.all_points():
-                        if y.get("measurement_mrid") == point.measurement_id:
+                        if y.get("measurement_mrid") == point.measurement_id and point.value != y.get("value"):
                              point.value = y.get("value")
 
         except Exception as e:

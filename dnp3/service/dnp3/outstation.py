@@ -119,7 +119,6 @@ class DNP3Outstation(opendnp3.IOutstationApplication):
         # Configure the outstation database of points based on the contents of the data dictionary.
         _log.debug('Configuring the DNP3 Outstation database.')
         db_config = self.stack_config.dbConfig
-        print(self.get_agent())
         for point in self.get_agent().point_definitions.all_points():
             _log.debug("Adding Point: {}".format(point))
             # print(point)
