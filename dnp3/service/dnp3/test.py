@@ -181,9 +181,9 @@ def _byteify(data, ignore_dicts=False):
 
 
 
-# outfile = dnp3_mapping('model_dict.json')
-# a = outfile._create_cim_object_map()
-# outfile.load_json(a,'newpoints.json')
+outfile = dnp3_mapping('model_dict.json')
+a = outfile._create_cim_object_map()
+outfile.load_json(a,'newpoints.json')
 
 # def _main(simulation_id, input_file=  None, out_file = None):
 #     print(" I am here ")

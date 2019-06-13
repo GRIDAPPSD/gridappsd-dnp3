@@ -108,9 +108,9 @@ class DNP3Outstation(opendnp3.IOutstationApplication):
     def start(self):
         _log.debug('Configuring the DNP3 stack.')
         self.stack_config = asiodnp3.OutstationStackConfig(
-            opendnp3.DatabaseSizes.AllTypes(self.outstation_config.get('database_sizes', 10000)))
+            opendnp3.DatabaseSizes.AllTypes(self.outstation_config.get('database_sizes', 1000)))
         self.stack_config.outstation.eventBufferConfig = opendnp3.EventBufferConfig.AllTypes(
-            self.outstation_config.get('event_buffers', 10))
+        self.outstation_config.get('event_buffers', 10))
         self.stack_config.outstation.params.allowUnsolicited = self.outstation_config.get('allow_unsolicited', True)
         self.stack_config.link.LocalAddr = self.outstation_config.get('link_local_addr', 10)
         self.stack_config.link.RemoteAddr = self.outstation_config.get('link_remote_addr', 1)

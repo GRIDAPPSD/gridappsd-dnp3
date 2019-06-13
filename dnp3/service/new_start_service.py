@@ -10,11 +10,9 @@ from yaml import safe_load
 from dnp3.cim_to_dnp3  import DNP3Mapping
 #from dnp3.test import DNP3Mapping
 
-
+from gridappsd.topics import  simulation_output_topic
 from gridappsd import GridAPPSD, DifferenceBuilder, utils
-from gridappsd.topics import fncs_input_topic, fncs_output_topic
 
-#
 from pydnp3 import opendnp3
 from dnp3.points import (
     PointArray, PointDefinitions, PointDefinition, DNP3Exception, POINT_TYPE_ANALOG_INPUT, POINT_TYPE_BINARY_INPUT
@@ -237,37 +235,6 @@ def load_point_definitions(self):
             self.point_definitions = PointDefinitions(point_definitions_path=self._local_point_definitions_path)
         else:
             raise DNP3Exception("Failed to load point definitions from config store: {}".format(err))
-def json_load_byteified(file_handle):
-    return _byteify(
-        json.load(file_handle, object_hook=_byteify),
-        ignore_dicts=True
-    )
-
-
-def json_loads_byteified(json_text):
-    return _byteify(
-        json.loads(json_text, object_hook=_byteify),
-        ignore_dicts=True
-    )
-
-
-
-def _byteify(data, ignore_dicts=False):
-    # if this is a unicode string, return its string representation
-    if isinstance(data, str):
-        return data.encode('utf-8')
-    # if this is a list of values, return list of byteified values
-    if isinstance(data, list):
-        return [_byteify(item, ignore_dicts=True) for item in data]
-    # if this is a dictionary, return dictionary of byteified keys and values
-    # but only if we haven't already byteified it
-    if isinstance(data, dict) and not ignore_dicts:
-        return {
-            _byteify(key, ignore_dicts=True): _byteify(value, ignore_dicts=True)
-            for key, value in data.iteritems()
-        }
-    # if it's anything else, return it in its original form
-    return data
 
 def publish_outstation_status(status_string):
     print(status_string)
@@ -288,17 +255,19 @@ if __name__ == '__main__':
 
 
     parser.add_argument('simulation_id', help="Simulation id")
-    parser.add_argument('request', help="Path to model dictionary file")
+    # parser.add_argument('request', help="Path to model dictionary file")
 
     opts = parser.parse_args()
     #path_to_model_dict = args.path_to_model_dict
     simulation_id = opts.simulation_id
 
     filepath = "/tmp/gridappsd_tmp/{}/model_dict.json".format(simulation_id)
+    print(filepath)
 
 
-    with open(filepath, 'rb') as fp:
-        cim_dict = json_load_byteified(fp)
+    with open(filepath, 'r') as fp:
+        cim_dict = json.load(fp)
+    print(cim_dict)
 
 
     dnp3_object = DNP3Mapping(cim_dict)
@@ -316,7 +285,7 @@ if __name__ == '__main__':
 
     gapps = GridAPPSD(opts.simulation_id, address=utils.get_gridappsd_address(),
                       username=utils.get_gridappsd_user(), password=utils.get_gridappsd_pass())
-    gapps.subscribe(fncs_output_topic(opts.simulation_id),dnp3_object.on_message)
+    gapps.subscribe(simulation_output_topic(opts.simulation_id),dnp3_object.on_message)
     # print(processor)
 
     oustation = dict()
@@ -324,12 +293,11 @@ if __name__ == '__main__':
     point_def.load_points(dnp3_object.out_json)
     processor = Processor(point_def)
     dnp3_object.load_point_def(point_def)
-    print("Loading ", dnp3_object.load_point_def(point_def))
     outstation = start_outstation(oustation, processor)
-    for point in outstation.get_agent().point_definitions.all_points():
-        # print("name = ", point.name, "measurement_id = ", point.measurement_id, "value = ", point.value, "magnitude =", point.magnitude )
-        str = "{}, {} ".format(point.name, point.measurement_id)
-        print(str)
+    # for point in outstation.get_agent().point_definitions.all_points():
+    #     # print("name = ", point.name, "measurement_id = ", point.measurement_id, "value = ", point.value, "magnitude =", point.magnitude )
+    #     str = "{}, {} ".format(point.name, point.measurement_id)
+    #     print(str)
     try:
         while True:
             sleep(0.01)
