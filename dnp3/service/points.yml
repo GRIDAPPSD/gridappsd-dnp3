@@ -1,0 +1,17 @@
+points:
+  - data_type: "AI"
+    description: "Measurement"
+    group: 30
+    index: 1
+    name: "PowerTransformer_xfm1_Voltage"
+    units: "VA"
+    variation: 1
+    #value  : 123 
+  - data_type: "DI"
+    description: "Regulator"
+    group: 1
+    index: 0
+    name: "RatioTapChanger_reg3"
+    units: "Pos"
+    variation: 2
+    value  : 1

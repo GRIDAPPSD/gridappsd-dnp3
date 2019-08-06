@@ -252,13 +252,34 @@ if __name__ == '__main__':
     point_def.load_points(points)
     processor = Processor(point_def)
     print("************************")
-    print(str(point_def))
     # point_def.load_points(points)
 
     outstation = start_outstation(oustation, processor)
 
+    import random
+
+    flip = True 
+    while True:
+        _log.debug("Updating to new values of index 0, 1, 2, and binary 3")
+        outstation.apply_update(opendnp3.Analog(random.random()*100), 0)
+        outstation.apply_update(opendnp3.Analog(random.random()*100), 1)
+        outstation.apply_update(opendnp3.Analog(random.random()*1000), 2)
+        outstation.apply_update(opendnp3.Binary(flip), 0)
+        outstation.apply_update(opendnp3.Binary(not flip), 1)
+        outstation.apply_update(opendnp3.Binary(flip), 2)
+        flip = not flip
+        sleep(30)
+        
+
+    #outstation.apply_update(opendnp3.Binary(float(1),0 ))
+    #outstation.apply_update(opendnp3.Binary(True),1)
+    #outstation.apply_update(opendnp3.Binary(True),0)
+#    processor._apply_point_update(point_def, 1,5.3)
     try:
         while True:
-            sleep(0.01)
+            try:
+                sleep(0.01)
+            except KeyBoardInterrupt:
+                break
     finally:
         outstation.shutdown()

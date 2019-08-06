@@ -262,42 +262,71 @@ if __name__ == '__main__':
     simulation_id = opts.simulation_id
 
     filepath = "/tmp/gridappsd_tmp/{}/model_dict.json".format(simulation_id)
-    print(filepath)
+    #print(filepath)
 
 
     with open(filepath, 'r') as fp:
         cim_dict = json.load(fp)
-    print(cim_dict)
+    #print(cim_dict)
 
 
     dnp3_object = DNP3Mapping(cim_dict)
     dnp3_object._create_dnp3_object_map()
 
-    # with open("/tmp/json_out", 'w') as fp:
-    #     out_dict = dict({'points': dnp3_object.out_json})
-    #     json.dump(out_dict, fp, indent=2, sort_keys=True)
+    with open("/tmp/json_out", 'w') as fp:
+        out_dict = dict({'points': dnp3_object.out_json})
+        json.dump(out_dict, fp, indent=2, sort_keys=True)
 
     #print(points)
     if not dnp3_object.out_json:
         sys.stderr.write("invalid points specified in json configuration file.")
         sys.exit(10)
 
-
+    pointtest = open("/tmp/pointtest.txt", "w")
     gapps = GridAPPSD(opts.simulation_id, address=utils.get_gridappsd_address(),
                       username=utils.get_gridappsd_user(), password=utils.get_gridappsd_pass())
     gapps.subscribe(simulation_output_topic(opts.simulation_id),dnp3_object.on_message)
-    # print(processor)
-
     oustation = dict()
     point_def = PointDefinitions()
     point_def.load_points(dnp3_object.out_json)
     processor = Processor(point_def)
     dnp3_object.load_point_def(point_def)
     outstation = start_outstation(oustation, processor)
-    # for point in outstation.get_agent().point_definitions.all_points():
-    #     # print("name = ", point.name, "measurement_id = ", point.measurement_id, "value = ", point.value, "magnitude =", point.magnitude )
-    #     str = "{}, {} ".format(point.name, point.measurement_id)
-    #     print(str)
+    dnp3_object.load_outstation(outstation)
+    import random
+
+    flip = True
+    
+    while True:
+#        _log.debug("Updating to new values of index 0, 1, 2, and binary 3")
+        #outstation.apply_update(opendnp3.Analog(random.random()*100), 676)
+#        outstation.apply_update(opendnp3.Analog(random.random()*100), 1)
+#        outstation.apply_update(opendnp3.Analog(random.random()*1000), 2)
+#        outstation.apply_update(opendnp3.Binary(flip), 0)
+#        outstation.apply_update(opendnp3.Binary(not flip), 1)
+#        outstation.apply_update(opendnp3.Binary(flip), 2)
+#        flip = not flip
+        #pointtest = open("/tmp/pointtest.txt", "w")
+        for point in outstation.get_agent().point_definitions.all_points():
+            #str = "{}, {} ".format(point.name, point.measurement_id)
+            string = "name = "
+            string = string + point.name
+            string = string + " measurement_id = "
+            string = string + point.measurement_id
+            string = string + " index = "
+            string = string + str(point.index)              
+            string = string + " value = "
+            string = string + str(point.value)
+            string = string + " magnitude ="
+            string = string + str(point.magnitude)
+            string = string + "\n"
+            pointtest.write(string)
+            #print("name = ", point.name, "measurement_id = ", point.measurement_id, "value = ", point.value, "magnitude =", point.magnitude )
+        sleep(10)
+  
+    
+        
+     
     try:
         while True:
             sleep(0.01)

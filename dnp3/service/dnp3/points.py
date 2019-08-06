@@ -42,8 +42,8 @@ import re
 from pydnp3 import opendnp3
 
 DEFAULT_POINT_TOPIC = 'dnp3/point'
-DEFAULT_OUTSTATION_STATUS_TOPIC = 'mesa/outstation_status'
-DEFAULT_LOCAL_IP = "0.0.0.0"
+#DEFAULT_OUTSTATION_STATUS_TOPIC = 'mesa/outstation_status'
+#DEFAULT_LOCAL_IP = "0.0.0.0"
 DEFAULT_PORT = 20000
 
 # PointDefinition.fcodes values:
