@@ -15,3 +15,18 @@ points:
     units: "Pos"
     variation: 2
     value  : 1
+  - data_type: "DO"
+    description: "Measurement"
+    group: 11
+    index: 1
+    name: "Power_xfm1_Voltage"
+    units: "VA"
+    variation: 1
+  - data_type: "AO"
+    description: "Measurement"
+    group: 42
+    index: 1
+    name: "Transformer_xfm1_Voltage"
+    units: "VA"
+    variation: 3
+

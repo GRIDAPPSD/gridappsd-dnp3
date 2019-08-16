@@ -37,10 +37,6 @@ import logging
 
 from pydnp3 import opendnp3, openpal, asiopal, asiodnp3
 
-# from volttron.platform.agent import utils
-
-# utils.setup_logging()
-
 _log = logging.getLogger(__name__)
 
 
@@ -109,7 +105,7 @@ class DNP3Outstation(opendnp3.IOutstationApplication):
     def start(self):
         _log.debug('Configuring the DNP3 stack.')
         self.stack_config = asiodnp3.OutstationStackConfig(
-            opendnp3.DatabaseSizes.AllTypes(self.outstation_config.get('database_sizes', 1000)))
+            opendnp3.DatabaseSizes.AllTypes(self.outstation_config.get('database_sizes', 10000)))
         _log.debug(self.stack_config)
         self.stack_config.outstation.eventBufferConfig = opendnp3.EventBufferConfig.AllTypes(
         self.outstation_config.get('event_buffers', 10))
@@ -133,13 +129,7 @@ class DNP3Outstation(opendnp3.IOutstationApplication):
                 # This database's point configuration is limited to Binary and Analog data types.
                 cfg = None
             if cfg:
-                # print(cfg)
-
                 cfg.clazz = point.eclass
-                # print(point.svariation)
-                # print(cfg.svariation)
-                # print(point.evariation)
-                # print(cfg.evariation)
                 cfg.svariation = point.svariation
                 cfg.evariation = point.evariation
 
@@ -171,7 +161,6 @@ class DNP3Outstation(opendnp3.IOutstationApplication):
 
         _log.info('Enabling the DNP3 Outstation. Traffic can now start to flow.')
         self.outstation.Enable()
-        print("test123")
 
     def reload_parameters(self, local_ip, port, outstation_config):
         _log.debug('In reload_parameters')
@@ -420,10 +409,6 @@ def main():
     dnp3_outstation = DNP3Outstation('0.0.0.0', 20000, {})
     dnp3_outstation.start()
     _log.debug('DNP3 initialization complete. In command loop.')
-    #dnp3_outstation.apply_update(opendnp3.Analog(float(5.3)), 1)
-    #dnp3_outstation.apply_update(opendnp3.Analog(float(5.3)), 1)
-    print('test')
-    _log.debug('test12345 .')
     # Ad-hoc tests can be performed at this point if desired.
     dnp3_outstation.shutdown()
     _log.debug('DNP3 Outstation exiting.')

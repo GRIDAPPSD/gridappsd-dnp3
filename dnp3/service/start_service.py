@@ -41,17 +41,27 @@ class Processor(object):
         """
         try:
             _log.debug("cmdtype={},command={},index={},optype={}".format(command_type, command, index, op_type))
-            _log.debug("command_status={},command_value={}".format(command.status, command.value))
+            _log.debug("command_code={},command_code={},command_ontime={}".format(command.status, command.functionCode,
+                                                                               command.onTimeMS))
+            #_log.debug("command_status={},command_value={}".format(command.status, command.value))
             point_value = self.point_definitions.point_value_for_command(command_type, command, index, op_type)
+            print(point_value)
             if point_value is None:
                 return opendnp3.CommandStatus.DOWNSTREAM_FAIL
+            if 'ON' in str(command.functionCode) :
+                print(point_value.point_def, "index is ", point_value.index)
+            elif 'OFF' in str(command.functionCode):
+                    print(point_value.point_def)
+
         except Exception as ex:
+            print(ex)
             _log.error('No DNP3 PointDefinition for command with index {}'.format(index))
             return opendnp3.CommandStatus.DOWNSTREAM_FAIL
 
         try:
             self._process_point_value(point_value)
         except Exception as ex:
+            print(ex)
             _log.error('Error processing DNP3 command: {}'.format(ex))
             self.discard_cached_point_value(point_value)
             return opendnp3.CommandStatus.DOWNSTREAM_FAIL

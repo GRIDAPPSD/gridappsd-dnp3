@@ -6,11 +6,7 @@ import random
 
 from pydnp3 import opendnp3
 from typing import List, Dict, Union, Any
-
 from dnp3.outstation import DNP3Outstation
-#
-# from fncs import fncs
-
 from dnp3.points import (
     PointArray, PointDefinitions, PointDefinition, DNP3Exception, POINT_TYPE_ANALOG_INPUT, POINT_TYPE_BINARY_INPUT
 )
@@ -38,7 +34,7 @@ attribute_map = {
 
 
 class DNP3Mapping():
-    """ This creates dnps input and ouput points for incoming CIM messages  and model dictionary file respectively."""
+    """ This creates dnp3 input and output points for incoming CIM messages  and model dictionary file respectively."""
 
     def __init__(self, map_file):
         self.c_ao = 0
@@ -50,8 +46,6 @@ class DNP3Mapping():
         self.file_dict = map_file
         self.processor_point_def = PointDefinitions()
         self.outstation = DNP3Outstation('',0,'')
-        #self.logfile = open("/tmp/messageLog.txt", "a")
-        #self.logfile.write("file started")
 
 
     def on_message(self, simulation_id,message):
@@ -69,38 +63,27 @@ class DNP3Mapping():
             message_str = 'received message ' + str(message)
 
             json_msg = yaml.safe_load(str(message))
-            
-            
-            
-            #self.logfile.write("message received")
-            #print("msg123" + str(json_msg["message"]["measurements"]))
-            #print("Alka")
+
             if type(json_msg) != dict:
                 raise ValueError(
                     ' is not a json formatted string.'
                     + '\njson_msg = {0}'.format(json_msg))
 
-            fncs_input_message = {"{}".format(simulation_id): {}}
+            # fncs_input_message = {"{}".format(simulation_id): {}}
             measurement_values = json_msg["message"]["measurements"]
 
             # storing the magnitude and measurement_mRID values to publish in the dnp3 points for measurement key values
             for y in measurement_values:
                 if "magnitude" in y.keys():
                     for point in self.outstation.get_agent().point_definitions.all_points():
-                        print(point)
                         if y.get("measurement_mrid") == point.measurement_id and point.magnitude != y.get("magnitude"):
-                        #if y.get("measurement_mrid") == point.measurement_id:
-                             print("analog456 " + str(point.magnitude) + " " + str(point.index))
                              point.magnitude = y.get("magnitude")
                              self.outstation.apply_update(opendnp3.Analog(point.magnitude), point.index)
-                             print("test message", point.magnitude, y.get("measurement_mrid"))
                 elif "value" in y.keys():
                     for point in self.outstation.get_agent().point_definitions.all_points():
                         if y.get("measurement_mrid") == point.measurement_id and point.value != y.get("value"):
                              point.value = y.get("value")
-                             print("test", point.value, point.measurement_id, point.index )
                              self.outstation.apply_update(opendnp3.Binary(point.value), point.index)
-                             print("binary789" + point.value + " " + str(point.index) + str(point.measurement_id))
         except Exception as e:
             message_str = "An error occurred while trying to translate the  message received" + str(e)
 
@@ -142,7 +125,7 @@ class DNP3Mapping():
         records["variation"] = variation
         records["description"] = description
         records["name"] = name
-        records["measurement_type"] = measurement_type
+        # records["measurement_type"] = measurement_type
         records["attribute"] = attribute
         records["measurement_id"] = measurement_id
         self.out_json.append(records)
@@ -162,8 +145,6 @@ class DNP3Mapping():
         """This method creates the points by taking the input data from model dictionary file"""
 
         feeders = self.file_dict.get("feeders", [])
-        # print(self.file_dict)
-        # print(feeders)
         measurements = list()
         capacitors = list()
         regulators = list()
@@ -206,8 +187,6 @@ class DNP3Mapping():
         capacitor_index = {}
         for m in capacitors:
             measurement_id = m.get("mRID")
-            # measurement_type = m.get("measurementType")
-            #phase_value = list(m['phases'])
             cap_attribute = attribute_map['capacitors']['attribute']  # type: List[str]
 
             for l in range(0, 4):
@@ -232,7 +211,7 @@ class DNP3Mapping():
                     capacitor_index[name] = 0
                 name = name + "_" + str(capacitor_index[name])
                 description = "Capacitor, " + m['name'] + "," + "phase -" + m['phases'][p] + ", and attribute is - " + cap_attribute[4]
-                self.assign_val_d("DO", 11, 1, self.c_do, name, description, measurement_id, cap_attribute[4])
+                self.assign_val_d("DO", 12, 1, self.c_do, name, description, measurement_id, cap_attribute[4])
                 self.c_do += 1
 
         regulator_index = {}
@@ -264,7 +243,7 @@ class DNP3Mapping():
                     description = "Regulator, " + m['tankName'][j] + " " "phase is  -  " + m['bankPhases'][j] + ", Attribute is - " + reg_attribute[i]
                     measurement_id = m.get("mRID")
                     #name = m['tankName'][j] + "_" + reg_phase_attribute + "_" + m['bankPhases'][j]
-                    self.assign_val_d("DO", 11, 1, self.c_do, name, description, measurement_id[j],reg_attribute[i])
+                    self.assign_val_d("DO", 12, 1, self.c_do, name, description, measurement_id[j],reg_attribute[i])
                     self.c_do += 1
 
         solarpanel_index = {}
@@ -301,7 +280,7 @@ class DNP3Mapping():
                 phase_value = list(m['phases'])
                 name = "Switch" + "_"+ m.get("name") + "_"  + phase_value[k]
                 description = "Switch, " + m["name"] + "phases - " + phase_value[k]
-                self.assign_val_d("DO", 11, 1, self.c_do, name, description, measurement_id, switch_attribute)
+                self.assign_val_d("DO", 12, 1, self.c_do, name, description, measurement_id, switch_attribute)
                 self.c_do += 1
 
         for m in fuses:
@@ -312,7 +291,7 @@ class DNP3Mapping():
                 phase_value = list(m['phases'])
                 name = "Fuse" +"_"+ m.get("name") + "_" + phase_value[l]
                 description = "Fuse, " + m["name"] + "phases - " + phase_value[l]
-                self.assign_val_d("DO", 11, 1, self.c_do, name, description, measurement_id, switch_attribute)
+                self.assign_val_d("DO", 12, 1, self.c_do, name, description, measurement_id, switch_attribute)
                 self.c_do += 1
 
         for m in breakers:
@@ -322,7 +301,7 @@ class DNP3Mapping():
                 phase_value = list(m['phases'])
                 name = "Breaker"+"_"+m.get("name")  + "_" + phase_value[n]
                 description = "Breaker, " + m["name"] + "phases - " + phase_value[n]
-                self.assign_val_d("DO", 11, 1, self.c_do, name, description, measurement_id, switch_attribute)
+                self.assign_val_d("DO", 12, 1, self.c_do, name, description, measurement_id, switch_attribute)
                 self.c_do += 1
 
         for m in reclosers:
@@ -332,10 +311,8 @@ class DNP3Mapping():
                 phase_value = list(m['phases'])
                 name = "Recloser"+"_"+m.get("name") + "_" + phase_value[k]
                 description = "Recloser, " + m["name"] + "phases - " + phase_value[k]
-                self.assign_val_d("DO", 11, 1, self.c_do, name, description, measurement_id, switch_attribute)
+                self.assign_val_d("DO", 12, 1, self.c_do, name, description, measurement_id, switch_attribute)
                 self.c_do += 1
-
-
 
         return self.out_json
 

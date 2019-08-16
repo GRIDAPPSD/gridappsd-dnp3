@@ -303,6 +303,7 @@ class PointDefinitions(object):
         function_code = command.functionCode if type(command) == opendnp3.ControlRelayOutputBlock else None
         point_type = POINT_TYPE_BINARY_OUTPUT if function_code else POINT_TYPE_ANALOG_OUTPUT
         point_def = self.for_point_type_and_index(point_type, index)
+        print(point_def)
         if not point_def:
             raise DNP3Exception('No DNP3 PointDefinition found for point type {0} and index {1}'.format(point_type,
                                                                                                         index))
@@ -420,7 +421,7 @@ class BasePointDefinition(object):
         self.measurement_type = element_def.get('measurement_type', None)
         self.magnitude = element_def.get('magnitude', None)
         self.value = element_def.get('value', None)
-
+        self.attribute = element_def.get('attribute', None)
         #Old, unused data
         self.scaling_multiplier = element_def.get('scaling_multiplier', 1)
         self.units = element_def.get('units', '')
@@ -721,7 +722,7 @@ class PointValue(object):
         self.function_code = function_code
         self.value = value
         self.point_def = point_def
-        self.index = index          # MESA Array point indexes can differ from the indexes of their PointDefinitions.
+        self.index = index
         self.op_type = op_type
 
     def __str__(self):

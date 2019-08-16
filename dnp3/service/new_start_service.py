@@ -7,12 +7,9 @@ from time import sleep
 
 from yaml import safe_load
 
-from dnp3.cim_to_dnp3  import DNP3Mapping
-#from dnp3.test import DNP3Mapping
-
-from gridappsd.topics import  simulation_output_topic
+from dnp3.cim_to_dnp3 import DNP3Mapping
+from gridappsd.topics import simulation_output_topic,simulation_input_topic
 from gridappsd import GridAPPSD, DifferenceBuilder, utils
-
 from pydnp3 import opendnp3
 from dnp3.points import (
     PointArray, PointDefinitions, PointDefinition, DNP3Exception, POINT_TYPE_ANALOG_INPUT, POINT_TYPE_BINARY_INPUT
@@ -27,11 +24,17 @@ _log = logging.getLogger(__name__)
 
 class Processor(object):
 
-    def __init__(self, point_definitions):
+    def __init__(self, point_definitions,simulation_id, gridappsd_obj):
         self.point_definitions = point_definitions
         self._current_point_values = {}
         self._selector_block_points = {}
         self._current_array = None
+        self._gapps = gridappsd_obj
+        self._diff = DifferenceBuilder(simulation_id)
+        # self._close_diff = DifferenceBuilder(simulation_id)
+        self._publish_to_topic = simulation_input_topic(simulation_id)
+        self.processor_point_def = PointDefinitions()
+        self.outstation = DNP3Outstation('', 0, '')
 
     def publish_outstation_status(self, status):
         _log.debug(status)
@@ -47,13 +50,59 @@ class Processor(object):
         @return: A CommandStatus value.
         """
         try:
+
             _log.debug("cmdtype={},command={},index={},optype={}".format(command_type, command, index, op_type))
-            _log.debug("command_status={},command_value={}".format(command.status, command.value))
             point_value = self.point_definitions.point_value_for_command(command_type, command, index, op_type)
+            """ Generating CIM messages  for CROB and Analog type commands from Master. """
+
+            if 'Control' in str(command):
+                _log.debug("command_code={},command_code={},command_ontime={}".format(command.status, command.functionCode, command.onTimeMS))
+                for point in self.outstation.get_agent().point_definitions.all_points():
+                    if point.name in str(point_value.point_def) and point.attribute == 'ShuntCompensator.sections':
+                        if 'ON' in str(command.functionCode):
+                            self._diff.add_difference(point.measurement_id, point.attribute, 1, 0)
+                            msg = self.diff.get_message()
+                            self._gapps.send(self._publish_to_topic, json.dumps(msg))
+                            print(json.dumps(msg))
+                        else:
+                            self._diff.add_difference(point.measurement_id, point.attribute, 0, 1)
+                            msg = self.diff.get_message()
+                            self._gapps.send(self._publish_to_topic, json.dumps(msg))
+                            print(json.dumps(msg))
+                    if point.name in str(point_value.point_def) and point.attribute == 'Switch.open':
+                        if 'ON' in str(command.functionCode):
+                            self._diff.add_difference(point.measurement_id, point.attribute, 0, 1)
+                            msg = self._diff.get_message()
+                            self._gapps.send(self._publish_to_topic, json.dumps(msg))
+                            print(json.dumps(msg))
+                        else:
+                            self._diff.add_difference(point.measurement_id, point.attribute, 1, 0)
+                            msg = self._diff.get_message()
+                            self._gapps.send(self._publish_to_topic, json.dumps(msg))
+                            print(json.dumps(msg))
+
+            else:
+                _log.debug("command_status={},command_value={}".format(command.status, command.value))
+                for point in self.outstation.get_agent().point_definitions.all_points():
+                    # print(command.value, point.attribute)
+                    if point.name in str(point_value.point_def) and  point.attribute == "TapChanger.lineDropCompensation":
+                        if command.value == 1:
+                            self._diff.add_difference(point.measurement_id, point.attribute, "LINE_DROP_COMP", 0)
+                            msg = self._diff.get_message()
+                            self._gapps.send(self._publish_to_topic, json.dumps(msg))
+                            print(json.dumps(msg))
+                        else:
+                            self._diff.add_difference(point.measurement_id, point.attribute, "MANUAL", 0)
+                            msg = self._diff.get_message()
+                            self._gapps.send(self._publish_to_topic, json.dumps(msg))
+                            print(json.dumps(msg))
             if point_value is None:
                 return opendnp3.CommandStatus.DOWNSTREAM_FAIL
+
         except Exception as ex:
+            print(ex)
             _log.error('No DNP3 PointDefinition for command with index {}'.format(index))
+
             return opendnp3.CommandStatus.DOWNSTREAM_FAIL
 
         try:
@@ -207,7 +256,6 @@ def start_outstation(outstation_config, processor):
     return dnp3_outstation
 
 
-
 def load_point_definitions(self):
     """
         Load and cache a dictionary of PointDefinitions from a json list.
@@ -236,40 +284,19 @@ def load_point_definitions(self):
         else:
             raise DNP3Exception("Failed to load point definitions from config store: {}".format(err))
 
+
 def publish_outstation_status(status_string):
     print(status_string)
 
-# def on_message(headers, message):
-#     message = {}
-#
-#     try:
-#         output = message  # message[:40] if len(message) else message
-#         print("On message fn called" , {output})
-#
-#     except Exception as e:
-#         message_str = "An error occurred while trying to translate the  message received" + str(e)
-
-
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-
-
     parser.add_argument('simulation_id', help="Simulation id")
-    # parser.add_argument('request', help="Path to model dictionary file")
-
     opts = parser.parse_args()
-    #path_to_model_dict = args.path_to_model_dict
     simulation_id = opts.simulation_id
 
     filepath = "/tmp/gridappsd_tmp/{}/model_dict.json".format(simulation_id)
-    #print(filepath)
-
-
     with open(filepath, 'r') as fp:
         cim_dict = json.load(fp)
-    #print(cim_dict)
-
-
     dnp3_object = DNP3Mapping(cim_dict)
     dnp3_object._create_dnp3_object_map()
 
@@ -277,55 +304,23 @@ if __name__ == '__main__':
         out_dict = dict({'points': dnp3_object.out_json})
         json.dump(out_dict, fp, indent=2, sort_keys=True)
 
-    #print(points)
+
     if not dnp3_object.out_json:
         sys.stderr.write("invalid points specified in json configuration file.")
         sys.exit(10)
 
-    pointtest = open("/tmp/pointtest.txt", "w")
     gapps = GridAPPSD(opts.simulation_id, address=utils.get_gridappsd_address(),
                       username=utils.get_gridappsd_user(), password=utils.get_gridappsd_pass())
     gapps.subscribe(simulation_output_topic(opts.simulation_id),dnp3_object.on_message)
+
     oustation = dict()
     point_def = PointDefinitions()
     point_def.load_points(dnp3_object.out_json)
-    processor = Processor(point_def)
+    processor = Processor(point_def, simulation_id, gapps)
     dnp3_object.load_point_def(point_def)
     outstation = start_outstation(oustation, processor)
     dnp3_object.load_outstation(outstation)
-    import random
-
-    flip = True
-    
-    while True:
-#        _log.debug("Updating to new values of index 0, 1, 2, and binary 3")
-        #outstation.apply_update(opendnp3.Analog(random.random()*100), 676)
-#        outstation.apply_update(opendnp3.Analog(random.random()*100), 1)
-#        outstation.apply_update(opendnp3.Analog(random.random()*1000), 2)
-#        outstation.apply_update(opendnp3.Binary(flip), 0)
-#        outstation.apply_update(opendnp3.Binary(not flip), 1)
-#        outstation.apply_update(opendnp3.Binary(flip), 2)
-#        flip = not flip
-        #pointtest = open("/tmp/pointtest.txt", "w")
-        for point in outstation.get_agent().point_definitions.all_points():
-            #str = "{}, {} ".format(point.name, point.measurement_id)
-            string = "name = "
-            string = string + point.name
-            string = string + " measurement_id = "
-            string = string + point.measurement_id
-            string = string + " index = "
-            string = string + str(point.index)              
-            string = string + " value = "
-            string = string + str(point.value)
-            string = string + " magnitude ="
-            string = string + str(point.magnitude)
-            string = string + "\n"
-            pointtest.write(string)
-            #print("name = ", point.name, "measurement_id = ", point.measurement_id, "value = ", point.value, "magnitude =", point.magnitude )
-        sleep(10)
-  
-    
-        
+    # gapps.send(simulation_input_topic(opts.simulation_id), processor.process_point_value())
      
     try:
         while True:
