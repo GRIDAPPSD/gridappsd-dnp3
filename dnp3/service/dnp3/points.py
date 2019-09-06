@@ -303,7 +303,7 @@ class PointDefinitions(object):
         function_code = command.functionCode if type(command) == opendnp3.ControlRelayOutputBlock else None
         point_type = POINT_TYPE_BINARY_OUTPUT if function_code else POINT_TYPE_ANALOG_OUTPUT
         point_def = self.for_point_type_and_index(point_type, index)
-        print(point_def)
+        # print(point_def)
         if not point_def:
             raise DNP3Exception('No DNP3 PointDefinition found for point type {0} and index {1}'.format(point_type,
                                                                                                         index))
@@ -352,6 +352,7 @@ class PointDefinitions(object):
                         self._point_name_dict[point_name] = []
                     self._point_name_dict[point_name].append(point_def)
         return self._point_name_dict
+
 
     def point_named(self, name, index=None):
         """
@@ -402,9 +403,25 @@ class PointDefinitions(object):
             point_list.extend(inner_dict.values())
         return point_list
 
+    def points_by_mrid(self):
+        """Return a (cached) dictionary of PointDefinition lists, indexed by name."""
+        if not self._point_mrid_dict:
+            for point_type, inner_dict in self._points_dictionary().items():
+                for point_def in inner_dict.items():
+                    print(point_def)
+                    point_mrid = point_def.measurement_id
+                    # if point_mrid not in self._point_mrid_dict:
+                    #     self._point_mrid_dict[point_mrid] = []
+                    self._point_mrid_dict[point_mrid].append(point_def)
+        return self._point_mrid_dict
+
+
+
     def all_point_names(self):
         return self.points_by_name().keys()
 
+    def all_point_mrid(self):
+        return self.points_by_mrid().keys()
 
 class BasePointDefinition(object):
     """Abstract superclass for PointDefinition data holders."""
@@ -749,7 +766,7 @@ class PointValue(object):
 
 
 class PointArray(object):
-    """Data holder for a MESA-ESS Array."""
+    """Data holder for  Array."""
 
     def __init__(self, point_def):
         """
