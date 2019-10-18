@@ -2,18 +2,13 @@
    sphinx-quickstart on Fri Oct 18 11:22:16 2019.
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
-
-Welcome to GridAPPS-D DNP3 Service's documentation!
-===================================================
-
-.. toctree::
-   :maxdepth: 2
-   :caption: Contents:
-
+   
 GridAPPS-D DNP3 Service
 -------------------------------
-
-GridAPPS-D DNP3 service is an application service to integrate GridAPPS-D
+.. toctree::
+   :maxdepth: 2
+   
+'GridAPPS-D DNP3' service is an application service to integrate GridAPPS-D
 and a Distrbuted Newtork Protocol(DNP3)[1] based commercial product that 
 allows operation, monitoring, analysis, restoration, and optimization of 
 network operations to enable data exchange bewteen the applications. The 
@@ -37,7 +32,7 @@ shown in the figure below.
 Figure 1: Integration architecture 
 
 
-1.The commercial tool used here is SurvalentONE[2], a DNP3 based SCADA 
+* The commercial tool used here is SurvalentONE[2], a DNP3 based SCADA 
 system.  The SurvalentONE SCADA system was configured as per the
 manuals provided by the Survalent Company. The Master server configuration
 includes creating a Station, Communication Link, Intelligent Electronic 
@@ -47,7 +42,7 @@ metadata such as predefined datatypes, groups, variation. The template is create
 using a template maker provided by Survalent.Then the  template is  loaded in the
 Master IED of the Master server.
 
-2. Once this configuration is done and the DNP3 application service is created,
+* Once this configuration is done and the DNP3 application service is created,
 start the service by creating a simulation request. Since the service is added to 
 gridapps container, it gets started as soon as the gridappsd service is started. 
 A model dictionary file(CIM measurements) is generated for each simulation ID when a 
@@ -55,7 +50,7 @@ simulation request for a specific model is sent to the simulator(GridLAB-D). The
 simulation output from  the simulator running under GridAPPS-D is received on the 
 simulation output topic by the Message Bus. 
 
-3. The DNP3 service at the Outstation and also the Communication Line at 
+* The DNP3 service at the Outstation and also the Communication Line at 
 the Master Server on startup initiate a connection request from the Master, to the IP
 address of the Outstation at port 20000. In our case, the Outstation listens
 on port 20000. The DNP3 points created from the CIM model dictionary file are 
@@ -79,7 +74,7 @@ sent to the Master is shown below.
 		"variation": 1
 	}
 
-4. The datatype, group and variation of the points are shown in the Table below.
+* The datatype, group and variation of the points are shown in the Table below.
 
 .. code-block:: console
 
@@ -91,11 +86,11 @@ sent to the Master is shown below.
 	Digital Input		1	2		Breakers				Status		                Outstation to Master
 
 
-5. The on_message function in the service code keeps on updating the real-time 
+* The on_message function in the service code keeps on updating the real-time 
 values for all the DNP3 points in Master server. The status and amgnitude values 
 updates can be seen in the User Interfaces(Point viewers) provided by Survalent. 
 
-6. SurvalentONE SCADA has the capability of controlling the points/measurements. 
+* SurvalentONE SCADA has the capability of controlling the points/measurements. 
 The output commands are generated using the point viewers’ user interface. 
 For example, a switch can be turned ON/OFF by selecting the control option
 manually. Similarly, analog values the AC Line segment can also be modified.
