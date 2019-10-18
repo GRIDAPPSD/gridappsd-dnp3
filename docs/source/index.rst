@@ -174,8 +174,8 @@ References
 [3] Automatak. “opendnp3”. https://dnp3.github.io/ (accessed: June 2019).
 
 
-.. |GridAPPS-D_DNP3IntegrationArchitecture| image:: PNNL_Apps/media/GridAPPS-D_DNP3IntegrationArchitecture.png
-.. |switch1| image:: PNNL_Apps/media/switch1.png
+.. |GridAPPS-D_DNP3IntegrationArchitecture| image:: _static/GridAPPS-D_DNP3IntegrationArchitecture.png
+.. |switch1| image:: _static/switch1.png
 
 
 
