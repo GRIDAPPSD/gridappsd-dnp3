@@ -76,15 +76,18 @@ class DNP3Mapping():
             # storing the magnitude and measurement_mRID values to publish in the dnp3 points for measurement key values
             for y in measurement_values:
                 # print(self.processor_point_def.points_by_mrid())
-                if "magnitude" in y.keys():
+                m = measurement_values[y]
+                if "magnitude" in m.keys():
                    for point in self.outstation.get_agent().point_definitions.all_points():
-                        if y.get("measurement_mrid") == point.measurement_id and point.magnitude != y.get("magnitude"):
-                             point.magnitude = y.get("magnitude")
-                             self.outstation.apply_update(opendnp3.Analog(point.magnitude), point.index)
-                elif "value" in y.keys():
+                       #print("point",point)
+                       #print("y",y)
+                       if m.get("measurement_mrid") == point.measurement_id and point.magnitude != m.get("magnitude"):
+                           point.magnitude = m.get("magnitude")
+                           self.outstation.apply_update(opendnp3.Analog(point.magnitude), point.index)
+                elif "value" in m.keys():
                     for point in self.outstation.get_agent().point_definitions.all_points():
-                        if y.get("measurement_mrid") == point.measurement_id and point.value != y.get("value"):
-                             point.value = y.get("value")
+                        if m.get("measurement_mrid") == point.measurement_id and point.value != m.get("value"):
+                             point.value = m.get("value")
                              self.outstation.apply_update(opendnp3.Binary(point.value), point.index)
         except Exception as e:
             message_str = "An error occurred while trying to translate the  message received" + str(e)
