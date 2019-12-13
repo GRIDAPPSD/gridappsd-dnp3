@@ -119,7 +119,7 @@ class DNP3Outstation(opendnp3.IOutstationApplication):
         db_config = self.stack_config.dbConfig
         _log.debug(db_config)
         for point in self.get_agent().point_definitions.all_points():
-            _log.debug("Adding Point: {}".format(point))
+            #_log.debug("Adding Point: {}".format(point))
             # print(point)
             if point.point_type == 'Analog Input':
                 cfg = db_config.analog[int(point.index)]
@@ -296,7 +296,7 @@ class DNP3Outstation(opendnp3.IOutstationApplication):
         :param value: An instance of Analog, Binary, or another opendnp3 data value.
         :param index: (integer) Index of the data definition in the opendnp3 database.
         """
-        _log.debug('Recording DNP3 {} measurement, index={}, value={}'.format(type(value).__name__, index, value.value))
+        #_log.debug('Recording DNP3 {} measurement, index={}, value={}'.format(type(value).__name__, index, value.value))
         max_index = cls.get_outstation_config().get('database_sizes', 10000)
         if index > max_index:
             raise ValueError('Attempt to set a value for index {} which exceeds database size {}'.format(index,
