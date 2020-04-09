@@ -274,12 +274,18 @@ class Processor(object):
 def start_outstation(outstation_config, processor):
     print("*********************************")
     print(str(outstation_config))
-    dnp3_outstation = DNP3Outstation('0.0.0.0', 20000, outstation_config)
-    dnp3_outstation.set_agent(processor)
-    dnp3_outstation.start()
+    #dnp3_outstation = DNP3Outstation('0.0.0.0', 20000, outstation_config)
+    outstation_list =[]
+    for m in port_config:
+        print(m['port'])
+        dnp3_outstation = DNP3Outstation('0.0.0.0', int(m['port']), outstation_config)
+        dnp3_outstation.set_agent(processor)
+        dnp3_outstation.start()
+        outstation_list.append(dnp3_outstation)
     _log.debug('DNP3 initialization complete. In command loop.')
+    
     # Ad-hoc tests can be performed at this point if desired.
-    return dnp3_outstation
+    return outstation_list
 
 
 def load_point_definitions(self):
@@ -330,6 +336,9 @@ if __name__ == '__main__':
         out_dict = dict({'points': dnp3_object.out_json})
         json.dump(out_dict, fp, indent=2, sort_keys=True)
 
+    with open("/tmp/port.json", 'r') as f:
+        port_config = json.load(f)
+        print(port_config)
 
     if not dnp3_object.out_json:
         sys.stderr.write("invalid points specified in json configuration file.")
@@ -339,13 +348,15 @@ if __name__ == '__main__':
                       username=utils.get_gridappsd_user(), password=utils.get_gridappsd_pass())
     gapps.subscribe(simulation_output_topic(opts.simulation_id),dnp3_object.on_message)
 
+
     oustation = dict()
     point_def = PointDefinitions()
     point_def.load_points(dnp3_object.out_json)
     processor = Processor(point_def, simulation_id, gapps)
     dnp3_object.load_point_def(point_def)
-    outstation = start_outstation(oustation, processor)
-    dnp3_object.load_outstation(outstation)
+    outstation_list = start_outstation(oustation, processor)
+    for outstation in outstation_list:
+        dnp3_object.load_outstation(outstation)
     # gapps.send(simulation_input_topic(opts.simulation_id), processor.process_point_value())
      
     try:

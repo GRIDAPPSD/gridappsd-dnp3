@@ -159,6 +159,7 @@ class DNP3Mapping():
         fuses = list()
         breakers = list()
         reclosers = list()
+        energyconsumers = list()
         for x in feeders:
             measurements = x.get("measurements", [])
             capacitors = x.get("capacitors", [])
@@ -169,13 +170,14 @@ class DNP3Mapping():
             fuses = x.get("fuses", [])
             breakers = x.get("breakers", [])
             reclosers = x.get("reclosers", [])
+            energyconsumers = x.get("energyconsumers", [])
 
         for m in measurements:
             attribute = attribute_map['regulators']['attribute']
             measurement_type = m.get("measurementType")
             measurement_id = m.get("mRID")
             name= measurement_id.replace('-', '').replace('_', '')
-            description = "Name:" + m['name'] + ",Phase:" + m['phases'] + ",MeasurementType:" + measurement_type + ",ConnectivityNode:" + m.get("ConnectivityNode") +",SimObject" + m.get("SimObject")
+            description = "Name:" + m['name'] + ",Phase:" + m['phases'] + ",MeasurementType:" + measurement_type + ",ConnectivityNode:" + m.get("ConnectivityNode") +",SimObject:" + m.get("SimObject")
             if m['MeasurementClass'] == "Analog":
                 self.assign_val_a("AI", 30, 1, self.c_ai, name, description, measurement_type, measurement_id)
                 self.c_ai += 1
@@ -277,6 +279,16 @@ class DNP3Mapping():
                 description = "Recloser, " + m["name"] + "Phase: - " + phase_value[k] + ",ConductingEquipment_type:Recloser"+"controlAttribute:" + switch_attribute
                 self.assign_val_d("DO", 12, 1, self.c_do, name, description, measurement_id, switch_attribute)
                 self.c_do += 1
+
+
+        for m in energyconsumers:
+            measurement_id = m.get("mRID")
+            for k in range(0, len(m['phases'])):
+                phase_value = list(m['phases'])
+                name = uuid.uuid4().hex
+                description = "EnergyConsumer, " + m["name"] + "Phase: - " + phase_value[k] 
+                self.assign_val_a("AI", 30, 1, self.c_ai, name, description, None , measurement_id)
+                self.c_ai += 1
 
         return self.out_json
 
