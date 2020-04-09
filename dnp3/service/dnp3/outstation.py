@@ -37,10 +37,6 @@ import logging
 
 from pydnp3 import opendnp3, openpal, asiopal, asiodnp3
 
-# from volttron.platform.agent import utils
-
-# utils.setup_logging()
-
 _log = logging.getLogger(__name__)
 
 
@@ -94,6 +90,7 @@ class DNP3Outstation(opendnp3.IOutstationApplication):
         """
         super(DNP3Outstation, self).__init__()
         self.local_ip = local_ip
+        print(local_ip),
         self.port = port
         self.set_outstation_config(outstation_config)
         # The following variables are initialized after start() is called.
@@ -107,18 +104,23 @@ class DNP3Outstation(opendnp3.IOutstationApplication):
 
     def start(self):
         _log.debug('Configuring the DNP3 stack.')
-        self.stack_config = asiodnp3.OutstationStackConfig(opendnp3.DatabaseSizes.AllTypes(self.outstation_config.get('database_sizes', 10000)))
-        self.stack_config.outstation.eventBufferConfig = opendnp3.EventBufferConfig.AllTypes(self.outstation_config.get('event_buffers', 10))
-        self.stack_config.outstation.params.allowUnsolicited = self.outstation_config.get('allow_unsolicited', True)
-        self.stack_config.link.LocalAddr = self.outstation_config.get('link_local_addr', 10)
-        self.stack_config.link.RemoteAddr = self.outstation_config.get('link_remote_addr', 1)
+        self.stack_config = asiodnp3.OutstationStackConfig(
+            opendnp3.DatabaseSizes.AllTypes(self.outstation_config.get('database_sizes', 10000)))
+        _log.debug(self.stack_config)
+        self.stack_config.outstation.eventBufferConfig = opendnp3.EventBufferConfig.AllTypes(
+        self.outstation_config.get('event_buffers', 10))
+        self.stack_config.outstation.params.allowUnsolicited = self.outstation_config.get('allow_unsolicited', False)
+        self.stack_config.link.LocalAddr = self.outstation_config.get('link_local_addr', 1)
+        self.stack_config.link.RemoteAddr = self.outstation_config.get('link_remote_addr', 1024)
         self.stack_config.link.KeepAliveTimeout = openpal.TimeDuration().Max()
 
         # Configure the outstation database of points based on the contents of the data dictionary.
         _log.debug('Configuring the DNP3 Outstation database.')
         db_config = self.stack_config.dbConfig
+        _log.debug(db_config)
         for point in self.get_agent().point_definitions.all_points():
-            _log.debug("Adding Point: {}".format(point))
+            #_log.debug("Adding Point: {}".format(point))
+            # print(point)
             if point.point_type == 'Analog Input':
                 cfg = db_config.analog[int(point.index)]
             elif point.point_type == 'Binary Input':
@@ -168,7 +170,7 @@ class DNP3Outstation(opendnp3.IOutstationApplication):
 
     @classmethod
     def get_agent(cls):
-        """Return the singleton DNP3Agent or MesaAgent instance."""
+        """Return the singleton DNP3Agent """
         agt = cls.agent
         if agt is None:
             raise ValueError('Outstation has no configured agent')
@@ -176,7 +178,7 @@ class DNP3Outstation(opendnp3.IOutstationApplication):
 
     @classmethod
     def set_agent(cls, agent):
-        """Set the singleton DNP3Agent or MesaAgent instance."""
+        """Set the singleton DNP3Agent """
         cls.agent = agent
 
     @classmethod
@@ -294,7 +296,7 @@ class DNP3Outstation(opendnp3.IOutstationApplication):
         :param value: An instance of Analog, Binary, or another opendnp3 data value.
         :param index: (integer) Index of the data definition in the opendnp3 database.
         """
-        _log.debug('Recording DNP3 {} measurement, index={}, value={}'.format(type(value).__name__, index, value.value))
+        #_log.debug('Recording DNP3 {} measurement, index={}, value={}'.format(type(value).__name__, index, value.value))
         max_index = cls.get_outstation_config().get('database_sizes', 10000)
         if index > max_index:
             raise ValueError('Attempt to set a value for index {} which exceeds database size {}'.format(index,
@@ -411,6 +413,7 @@ def main():
     dnp3_outstation.shutdown()
     _log.debug('DNP3 Outstation exiting.')
     exit()
+
 
 if __name__ == '__main__':
     main()
