@@ -35,7 +35,7 @@ attribute_map = {
 
 
 class DNP3Mapping():
-    """ This creates dnp3 input and output points for incoming CIM messages  and model dictionary file respectively."""
+    """ This class creates dnp3 input and output points for incoming CIM messages  and model dictionary file respectively."""
 
     def __init__(self, map_file):
         self.c_ao = 0
@@ -46,7 +46,7 @@ class DNP3Mapping():
         self.out_json = list()
         self.file_dict = map_file
         self.processor_point_def = PointDefinitions()
-        self.outstation = DNP3Outstation('',0,'')
+        self.outstation = DNP3Outstation('','','')
 
 
     def on_message(self, simulation_id,message):
@@ -62,7 +62,7 @@ class DNP3Mapping():
 
         try:
             message_str = 'received message ' + str(message)
-
+            print('Outstation {}'.format(str(self.outstation)))
             json_msg = yaml.safe_load(str(message))
 
             if type(json_msg) != dict:
@@ -75,20 +75,25 @@ class DNP3Mapping():
 
             # storing the magnitude and measurement_mRID values to publish in the dnp3 points for measurement key values
             for y in measurement_values:
+                #print(y.keys())
                 # print(self.processor_point_def.points_by_mrid())
                 m = measurement_values[y]
                 if "magnitude" in m.keys():
                    for point in self.outstation.get_agent().point_definitions.all_points():
-                       #print("point",point)
-                       #print("y",y)
+                       #print("Outcheck2",self.outstation)
                        if m.get("measurement_mrid") == point.measurement_id and point.magnitude != m.get("magnitude"):
                            point.magnitude = m.get("magnitude")
+                           print('Measurementloop', self.outstation)
                            self.outstation.apply_update(opendnp3.Analog(point.magnitude), point.index)
+                           #print("Outcheck3",point.index)
+                           print("apply update working", self.outstation)
                 elif "value" in m.keys():
                     for point in self.outstation.get_agent().point_definitions.all_points():
                         if m.get("measurement_mrid") == point.measurement_id and point.value != m.get("value"):
-                             point.value = m.get("value")
-                             self.outstation.apply_update(opendnp3.Binary(point.value), point.index)
+                            point.value = m.get("value")
+                            print("binary check")
+                            self.outstation.apply_update(opendnp3.Binary(point.value), point.index)
+                            print("binary update working")
         except Exception as e:
             message_str = "An error occurred while trying to translate the  message received" + str(e)
 
@@ -159,7 +164,6 @@ class DNP3Mapping():
         fuses = list()
         breakers = list()
         reclosers = list()
-        energyconsumers = list()
         for x in feeders:
             measurements = x.get("measurements", [])
             capacitors = x.get("capacitors", [])
@@ -170,14 +174,14 @@ class DNP3Mapping():
             fuses = x.get("fuses", [])
             breakers = x.get("breakers", [])
             reclosers = x.get("reclosers", [])
-            energyconsumers = x.get("energyconsumers", [])
 
         for m in measurements:
             attribute = attribute_map['regulators']['attribute']
             measurement_type = m.get("measurementType")
             measurement_id = m.get("mRID")
             name= measurement_id.replace('-', '').replace('_', '')
-            description = "Name:" + m['name'] + ",Phase:" + m['phases'] + ",MeasurementType:" + measurement_type + ",ConnectivityNode:" + m.get("ConnectivityNode") +",SimObject:" + m.get("SimObject")
+            description = "Name:" + m['name'] + ",Phase:" + m['phases'] + ",MeasurementType:" + measurement_type + ",ConnectivityNode:" + m.get("ConnectivityNode")
+
             if m['MeasurementClass'] == "Analog":
                 self.assign_val_a("AI", 30, 1, self.c_ai, name, description, measurement_type, measurement_id)
                 self.c_ai += 1
@@ -190,8 +194,8 @@ class DNP3Mapping():
                 else:
                     self.assign_val_a("DI", 1, 2, self.c_di, name, description, measurement_type, measurement_id)
                     self.c_di += 1
-
-
+            
+            
         for m in capacitors:
             measurement_id = m.get("mRID")
             cap_attribute = attribute_map['capacitors']['attribute']  # type: List[str]
@@ -211,20 +215,25 @@ class DNP3Mapping():
 
         for m in regulators:
             reg_attribute = attribute_map['regulators']['attribute']
-            # bank_phase = list(m['bankPhases'])
+            bank_phase = list(m['bankPhases'])
+            #print(f"m {m}")
+            for i in range(5, 7):
+                for j in range(0, len(m['bankPhases'])):
+                    measurement_id = m.get("mRID")
+                    name = uuid.uuid4().hex
+                    description = "Name:" + m['bankName'][j] + ",ConductingEquipment_type:RatioTapChanger_Reg"+ ",controlAttribute:" + reg_attribute[i]
+                    self.assign_val_d("AO", 42, 3, self.c_ao, name, description, measurement_id,reg_attribute[i])
+                    self.c_ao += 1
             for n in range(0, 4):
                 measurement_id = m.get("mRID")
                 name = uuid.uuid4().hex
-                description = "Name:" + m['bankName'] + ",ConductingEquipment_type:RatioTapChanger_Reg" +",Phase:" + m['bankPhases'] + ",Attribute:" + reg_attribute[n]
+                #print("Alka",bank_phase[n])
+                reg_attribute = attribute_map['regulators']['attribute']
+                #print(reg_attribute)
+                description = "Name:" + m['bankName'] + ",ConductingEquipment_type:RatioTapChanger_Reg" + ",Attribute:" + reg_attribute[n]
                 self.assign_val_d("AO", 42, 3, self.c_ao, name, description, measurement_id[0], reg_attribute[n])
                 self.c_ao += 1
-            for i in range(5, 7):
-                for j in range(0, len(m['bankPhases'])):
-                    measurement_id = m.get("mRID")[j]
-                    name = uuid.uuid4().hex
-                    description = "Name:" + m['tankName'][j] + ",ConductingEquipment_type:RatioTapChanger_Reg"+ ",Phase:" + m['bankPhases'][j] + ",controlAttribute:" + reg_attribute[i]
-                    self.assign_val_d("AO", 42, 3, self.c_ao, name, description, measurement_id,reg_attribute[i])
-                    self.c_ao += 1
+            
 
         for m in solarpanels:
             measurement_id = m.get("mRID")
@@ -279,16 +288,6 @@ class DNP3Mapping():
                 description = "Recloser, " + m["name"] + "Phase: - " + phase_value[k] + ",ConductingEquipment_type:Recloser"+"controlAttribute:" + switch_attribute
                 self.assign_val_d("DO", 12, 1, self.c_do, name, description, measurement_id, switch_attribute)
                 self.c_do += 1
-
-
-        for m in energyconsumers:
-            measurement_id = m.get("mRID")
-            for k in range(0, len(m['phases'])):
-                phase_value = list(m['phases'])
-                name = uuid.uuid4().hex
-                description = "EnergyConsumer, " + m["name"] + "Phase: - " + phase_value[k] 
-                self.assign_val_a("AI", 30, 1, self.c_ai, name, description, None , measurement_id)
-                self.c_ai += 1
 
         return self.out_json
 

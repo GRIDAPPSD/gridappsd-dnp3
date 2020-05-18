@@ -112,12 +112,13 @@ class DNP3Outstation(opendnp3.IOutstationApplication):
     
     def start(self):
         _log.debug('Configuring the DNP3 stack.')
+        _log.debug(str(self.outstation_config))
 
         #for m in self.port_config:
         self.stack_config = asiodnp3.OutstationStackConfig(opendnp3.DatabaseSizes.AllTypes(self.outstation_config.get('database_sizes', 10000)))
         _log.debug(self.stack_config)
         self.stack_config.outstation.eventBufferConfig = opendnp3.EventBufferConfig.AllTypes(self.outstation_config.get('event_buffers', 10))
-        self.stack_config.outstation.params.allowUnsolicited = self.outstation_config.get('allow_unsolicited', False)
+        self.stack_config.outstation.params.allowUnsolicited = self.outstation_config.get('allow_unsolicited', True)
             #for x in self.port_config:
            # link_addr = m['link_local_addr']
            # remote_addr = m['link_remote_addr']
@@ -131,7 +132,6 @@ class DNP3Outstation(opendnp3.IOutstationApplication):
         _log.debug(db_config)
         for point in self.get_agent().point_definitions.all_points():
             #_log.debug("Adding Point: {}".format(point))
-            # print(point)
             if point.point_type == 'Analog Input':
                 cfg = db_config.analog[int(point.index)]
             elif point.point_type == 'Binary Input':
@@ -150,28 +150,29 @@ class DNP3Outstation(opendnp3.IOutstationApplication):
         # self.log_handler = MyLogger().Create()
         self.log_handler = MyLogger()
         self.manager = asiodnp3.DNP3Manager(threads_to_allocate, self.log_handler)
+        #print('self', self.manager)
 
         _log.debug('Creating the DNP3 channel, a TCP server.')
         self.retry_parameters = asiopal.ChannelRetry().Default()
         # self.listener = asiodnp3.PrintingChannelListener().Create()       # (or use this during regression testing)
         self.listener = AppChannelListener()
-        print(self.listener)
-        print("Starting TCP server 2000000")
+        #print(self.listener)
+        #print("Starting TCP server 2000000")
         self.channel = self.manager.AddTCPServer("server",
                                                  self.dnp3_log_level(),
                                                  self.retry_parameters,
                                                  self.local_ip,
                                                  self.port,
                                                  self.listener)
-
+         
+        
+        #_log.debug(str(self.channel))
         _log.debug('Adding the DNP3 Outstation to the channel.')
         # self.command_handler =  opendnp3.SuccessCommandHandler().Create() # (or use this during regression testing)
         self.command_handler = OutstationCommandHandler()
         self.outstation = self.channel.AddOutstation("outstation", self.command_handler, self, self.stack_config)
-
         # Set the singleton instance that communicates with the Master.
         self.set_outstation(self.outstation)
-
         _log.info('Enabling the DNP3 Outstation. Traffic can now start to flow.')
         self.outstation.Enable()
 
@@ -194,31 +195,33 @@ class DNP3Outstation(opendnp3.IOutstationApplication):
         """Set the singleton DNP3Agent """
         cls.agent = agent
 
-    @classmethod
-    def get_outstation(cls):
+    #@classmethod
+    def get_outstation(self):
         """Get the singleton instance of IOutstation."""
-        outst = cls.outstation
+        outst = self.outstation
+        #print('Alkaaa',outst)
         if outst is None:
             raise AttributeError('IOutstation is not yet enabled')
         return outst
 
-    @classmethod
-    def set_outstation(cls, outstn):
+    #@classmethod
+    def set_outstation(self, outstn):
         """
             Set the singleton instance of IOutstation, as returned from the channel's AddOutstation call.
 
             Making IOutstation available as a singleton allows other classes
             to send commands to it -- see apply_update().
         """
-        cls.outstation = outstn
+        self.outstation = outstn
+        print("oustn", outstn)
 
-    @classmethod
-    def get_outstation_config(cls):
+    #classmethod
+    def get_outstation_config(self):
         """Get the outstation_config, a dictionary of configuration parameters."""
-        return cls.outstation_config
+        return self.outstation_config
 
-    @classmethod
-    def set_outstation_config(cls, outstn_cfg):
+    #@classmethod
+    def set_outstation_config(self, outstn_cfg):
         """
             Set the outstation_config.
 
@@ -226,7 +229,7 @@ class DNP3Outstation(opendnp3.IOutstationApplication):
 
         :param outstn_cfg: A dictionary of configuration parameters.
         """
-        cls.outstation_config = outstn_cfg
+        self.outstation_config = outstn_cfg
 
     def dnp3_log_level(self):
         """
@@ -299,8 +302,8 @@ class DNP3Outstation(opendnp3.IOutstationApplication):
         _log.debug('In DNP3 WarmRestartSupport')
         return opendnp3.RestartMode.UNSUPPORTED
 
-    @classmethod
-    def apply_update(cls, value, index):
+    #@classmethod
+    def apply_update(self, value, index):
         """
             Record an opendnp3 data value (Analog, Binary, etc.) in the outstation's database.
 
@@ -310,15 +313,20 @@ class DNP3Outstation(opendnp3.IOutstationApplication):
         :param index: (integer) Index of the data definition in the opendnp3 database.
         """
         #_log.debug('Recording DNP3 {} measurement, index={}, value={}'.format(type(value).__name__, index, value.value))
-        max_index = cls.get_outstation_config().get('database_sizes', 10000)
-        if index > max_index:
-            raise ValueError('Attempt to set a value for index {} which exceeds database size {}'.format(index,
-                                                                                                         max_index))
+        
+        #max_index = cls.get_outstation_config().get('database_sizes', 10000)
+        print("outstation is :", self.get_outstation_config())
+        print("check 4", index)
+        #if index > max_index:
+        #    raise ValueError('Attempt to set a value for index {} which exceeds database size {}'.format(index,max_index)) 
+       
         builder = asiodnp3.UpdateBuilder()
         builder.Update(value, index)
         update = builder.Build()
         try:
-            cls.get_outstation().Apply(update)
+            print('alkaaaaa', self.get_outstation())
+            self.get_outstation().Apply(update)
+            print("Updating point values", self.get_outstation())
         except AttributeError as err:
             if not os.environ.get('UNITTEST', False):
                 raise err
@@ -413,8 +421,8 @@ class MyLogger(openpal.ILogHandler):
         message = entry.message
         _log.debug('DNP3Log {0}\t(filters={1}) {2}'.format(location, filters, message))
         # This is here as an example of how to send a specific log entry to the message bus as outstation status.
-        # if 'Accepted connection' in message or 'Listening on' in message:
-        #     DNP3Outstation.get_agent().publish_outstation_status(str(message))
+        if 'Accepted connection' in message or 'Listening on' in message:
+            DNP3Outstation.get_agent().publish_outstation_status(str(message))
 
 
 def main():
