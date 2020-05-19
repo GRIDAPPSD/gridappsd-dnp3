@@ -62,7 +62,6 @@ class DNP3Mapping():
 
         try:
             message_str = 'received message ' + str(message)
-            print('Outstation {}'.format(str(self.outstation)))
             json_msg = yaml.safe_load(str(message))
 
             if type(json_msg) != dict:
@@ -75,25 +74,22 @@ class DNP3Mapping():
 
             # storing the magnitude and measurement_mRID values to publish in the dnp3 points for measurement key values
             for y in measurement_values:
-                #print(y.keys())
-                # print(self.processor_point_def.points_by_mrid())
                 m = measurement_values[y]
                 if "magnitude" in m.keys():
                    for point in self.outstation.get_agent().point_definitions.all_points():
-                       #print("Outcheck2",self.outstation)
+                       print("Outcheck2",self.outstation.get_agent())
                        if m.get("measurement_mrid") == point.measurement_id and point.magnitude != m.get("magnitude"):
                            point.magnitude = m.get("magnitude")
                            print('Measurementloop', self.outstation)
                            self.outstation.apply_update(opendnp3.Analog(point.magnitude), point.index)
-                           #print("Outcheck3",point.index)
                            print("apply update working", self.outstation)
                 elif "value" in m.keys():
                     for point in self.outstation.get_agent().point_definitions.all_points():
-                        if m.get("measurement_mrid") == point.measurement_id and point.value != m.get("value"):
-                            point.value = m.get("value")
-                            print("binary check")
-                            self.outstation.apply_update(opendnp3.Binary(point.value), point.index)
-                            print("binary update working")
+                        #if m.get("measurement_mrid") == point.measurement_id and point.value != m.get("value"):
+                        point.value = m.get("value")
+                        print("binary check")
+                        self.outstation.apply_update(opendnp3.Binary(point.value), point.index)
+                        print("binary update working")
         except Exception as e:
             message_str = "An error occurred while trying to translate the  message received" + str(e)
 

@@ -118,7 +118,7 @@ class DNP3Outstation(opendnp3.IOutstationApplication):
         self.stack_config = asiodnp3.OutstationStackConfig(opendnp3.DatabaseSizes.AllTypes(self.outstation_config.get('database_sizes', 10000)))
         _log.debug(self.stack_config)
         self.stack_config.outstation.eventBufferConfig = opendnp3.EventBufferConfig.AllTypes(self.outstation_config.get('event_buffers', 10))
-        self.stack_config.outstation.params.allowUnsolicited = self.outstation_config.get('allow_unsolicited', True)
+        self.stack_config.outstation.params.allowUnsolicited = self.outstation_config.get('allow_unsolicited', False)
             #for x in self.port_config:
            # link_addr = m['link_local_addr']
            # remote_addr = m['link_remote_addr']
@@ -131,6 +131,7 @@ class DNP3Outstation(opendnp3.IOutstationApplication):
         db_config = self.stack_config.dbConfig
         _log.debug(db_config)
         for point in self.get_agent().point_definitions.all_points():
+            print("Agent is", self.get_agent())
             #_log.debug("Adding Point: {}".format(point))
             if point.point_type == 'Analog Input':
                 cfg = db_config.analog[int(point.index)]
@@ -182,18 +183,19 @@ class DNP3Outstation(opendnp3.IOutstationApplication):
         self.port = port
         self.outstation_config = outstation_config
 
-    @classmethod
-    def get_agent(cls):
+    #@classmethod
+    def get_agent(self):
         """Return the singleton DNP3Agent """
-        agt = cls.agent
+        agt = self.agent
+        print('agt is', agt)
         if agt is None:
             raise ValueError('Outstation has no configured agent')
         return agt
 
-    @classmethod
-    def set_agent(cls, agent):
+    #@classmethod
+    def set_agent(self, agent):
         """Set the singleton DNP3Agent """
-        cls.agent = agent
+        self.agent = agent
 
     #@classmethod
     def get_outstation(self):
@@ -324,9 +326,9 @@ class DNP3Outstation(opendnp3.IOutstationApplication):
         builder.Update(value, index)
         update = builder.Build()
         try:
-            print('alkaaaaa', self.get_outstation())
+            print('printing at apply_update', self.get_outstation())
             self.get_outstation().Apply(update)
-            print("Updating point values", self.get_outstation())
+            #print("Updating point values", self.get_outstation())
         except AttributeError as err:
             if not os.environ.get('UNITTEST', False):
                 raise err
@@ -403,6 +405,7 @@ class AppChannelListener(asiodnp3.IChannelListener):
         :param state: A ChannelState.
         """
         DNP3Outstation.get_agent().publish_outstation_status(str(state))
+        #self.get_agent().publish_outstation_status(str(state))
 
 
 # class MyLogger(asiodnp3.ConsoleLogger):
