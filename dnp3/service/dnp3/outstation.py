@@ -131,7 +131,7 @@ class DNP3Outstation(opendnp3.IOutstationApplication):
         db_config = self.stack_config.dbConfig
         _log.debug(db_config)
         for point in self.get_agent().point_definitions.all_points():
-            print("Agent is", self.get_agent())
+            #print("Agent is", self.get_agent())
             #_log.debug("Adding Point: {}".format(point))
             if point.point_type == 'Analog Input':
                 cfg = db_config.analog[int(point.index)]
@@ -149,28 +149,34 @@ class DNP3Outstation(opendnp3.IOutstationApplication):
         threads_to_allocate = self.outstation_config.get('threads_to_allocate', 1)
         # self.log_handler = asiodnp3.ConsoleLogger().Create()              # (or use this during regression testing)
         # self.log_handler = MyLogger().Create()
-        self.log_handler = MyLogger()
+        self.log_handler = MyLogger(self)
         self.manager = asiodnp3.DNP3Manager(threads_to_allocate, self.log_handler)
         #print('self', self.manager)
 
         _log.debug('Creating the DNP3 channel, a TCP server.')
         self.retry_parameters = asiopal.ChannelRetry().Default()
         # self.listener = asiodnp3.PrintingChannelListener().Create()       # (or use this during regression testing)
-        self.listener = AppChannelListener()
+        self.listener = AppChannelListener(self)
         #print(self.listener)
         #print("Starting TCP server 2000000")
+        print('**********************************************')
+        print(self.retry_parameters)
+        print(self.local_ip)
+        print(self.port)
+        print(self.listener)
+        print('**********************************************')
         self.channel = self.manager.AddTCPServer("server",
                                                  self.dnp3_log_level(),
                                                  self.retry_parameters,
                                                  self.local_ip,
-                                                 self.port,
+                                                 int(self.port),
                                                  self.listener)
          
         
         #_log.debug(str(self.channel))
         _log.debug('Adding the DNP3 Outstation to the channel.')
         # self.command_handler =  opendnp3.SuccessCommandHandler().Create() # (or use this during regression testing)
-        self.command_handler = OutstationCommandHandler()
+        self.command_handler = OutstationCommandHandler(self)
         self.outstation = self.channel.AddOutstation("outstation", self.command_handler, self, self.stack_config)
         # Set the singleton instance that communicates with the Master.
         self.set_outstation(self.outstation)
@@ -187,7 +193,7 @@ class DNP3Outstation(opendnp3.IOutstationApplication):
     def get_agent(self):
         """Return the singleton DNP3Agent """
         agt = self.agent
-        print('agt is', agt)
+        #print('agt is', agt)
         if agt is None:
             raise ValueError('Outstation has no configured agent')
         return agt
@@ -355,6 +361,9 @@ class OutstationCommandHandler(opendnp3.ICommandHandler):
         ICommandHandler implements the Outstation's handling of Select and Operate,
         which relay commands and data from the Master to the Outstation.
     """
+    def __init__(self,dnp3Object):
+        super(OutstationCommandHandler, self).__init__()
+        self.dnp3Object = dnp3Object
 
     def Start(self):
         # This debug line is too chatty...
@@ -375,11 +384,10 @@ class OutstationCommandHandler(opendnp3.ICommandHandler):
         :param index: int
         :return: CommandStatus
         """
-        return DNP3Outstation.get_agent().process_point_value('Select', command, index, None)
+        return self.dnp3Object.get_agent().process_point_value('Select', command, index, None)
 
     def Operate(self, command, index, op_type):
         """
-            The Master sent an Operate command to the Outstation. Handle it.
 
         :param command: ControlRelayOutputBlock,
                         AnalogOutputInt16, AnalogOutputInt32, AnalogOutputFloat32, or AnalogOutputDouble64.
@@ -387,7 +395,7 @@ class OutstationCommandHandler(opendnp3.ICommandHandler):
         :param op_type: OperateType
         :return: CommandStatus
         """
-        return DNP3Outstation.get_agent().process_point_value('Operate', command, index, op_type)
+        return self.dnp3Object.get_agent().process_point_value('Operate', command, index, op_type)
 
 
 class AppChannelListener(asiodnp3.IChannelListener):
@@ -395,8 +403,10 @@ class AppChannelListener(asiodnp3.IChannelListener):
         IChannelListener has been overridden to implement application-specific channel behavior.
     """
 
-    def __init__(self):
+    def __init__(self,dnp3Object):
+        
         super(AppChannelListener, self).__init__()
+        self.dnp3Object = dnp3Object
 
     def OnStateChange(self, state):
         """
@@ -404,7 +414,7 @@ class AppChannelListener(asiodnp3.IChannelListener):
 
         :param state: A ChannelState.
         """
-        DNP3Outstation.get_agent().publish_outstation_status(str(state))
+        self.dnp3Object.get_agent().publish_outstation_status(str(state))
         #self.get_agent().publish_outstation_status(str(state))
 
 
@@ -414,8 +424,9 @@ class MyLogger(openpal.ILogHandler):
         ILogHandler has been overridden to implement application-specific logging behavior.
     """
 
-    def __init__(self):
+    def __init__(self, dnp3Object):
         super(MyLogger, self).__init__()
+        self.dnp3Object = dnp3Object
 
     def Log(self, entry):
         """Write a DNP3 log entry to the logger (debug level)."""
@@ -425,7 +436,7 @@ class MyLogger(openpal.ILogHandler):
         _log.debug('DNP3Log {0}\t(filters={1}) {2}'.format(location, filters, message))
         # This is here as an example of how to send a specific log entry to the message bus as outstation status.
         if 'Accepted connection' in message or 'Listening on' in message:
-            DNP3Outstation.get_agent().publish_outstation_status(str(message))
+            self.dnp3Object.get_agent().publish_outstation_status(str(message))
 
 
 def main():
