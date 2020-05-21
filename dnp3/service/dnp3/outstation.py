@@ -221,7 +221,6 @@ class DNP3Outstation(opendnp3.IOutstationApplication):
             to send commands to it -- see apply_update().
         """
         self.outstation = outstn
-        print("oustn", outstn)
 
     #classmethod
     def get_outstation_config(self):
@@ -323,8 +322,6 @@ class DNP3Outstation(opendnp3.IOutstationApplication):
         #_log.debug('Recording DNP3 {} measurement, index={}, value={}'.format(type(value).__name__, index, value.value))
         
         #max_index = cls.get_outstation_config().get('database_sizes', 10000)
-        print("outstation is :", self.get_outstation_config())
-        print("check 4", index)
         #if index > max_index:
         #    raise ValueError('Attempt to set a value for index {} which exceeds database size {}'.format(index,max_index)) 
        
@@ -332,7 +329,6 @@ class DNP3Outstation(opendnp3.IOutstationApplication):
         builder.Update(value, index)
         update = builder.Build()
         try:
-            print('printing at apply_update', self.get_outstation())
             self.get_outstation().Apply(update)
             #print("Updating point values", self.get_outstation())
         except AttributeError as err:

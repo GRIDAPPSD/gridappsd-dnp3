@@ -77,19 +77,15 @@ class DNP3Mapping():
                 m = measurement_values[y]
                 if "magnitude" in m.keys():
                    for point in self.outstation.get_agent().point_definitions.all_points():
-                       print("Outcheck2",self.outstation.get_agent())
                        if m.get("measurement_mrid") == point.measurement_id and point.magnitude != m.get("magnitude"):
                            point.magnitude = m.get("magnitude")
-                           print('Measurementloop', self.outstation)
                            self.outstation.apply_update(opendnp3.Analog(point.magnitude), point.index)
-                           print("apply update working", self.outstation)
+                         
                 elif "value" in m.keys():
                     for point in self.outstation.get_agent().point_definitions.all_points():
-                        #if m.get("measurement_mrid") == point.measurement_id and point.value != m.get("value"):
-                        point.value = m.get("value")
-                        print("binary check")
-                        self.outstation.apply_update(opendnp3.Binary(point.value), point.index)
-                        print("binary update working")
+                        if m.get("measurement_mrid") == point.measurement_id and point.value != m.get("value"):
+                            point.value = m.get("value")
+                            self.outstation.apply_update(opendnp3.Binary(point.value), point.index)
         except Exception as e:
             message_str = "An error occurred while trying to translate the  message received" + str(e)
 
