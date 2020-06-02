@@ -193,7 +193,6 @@ class DNP3Outstation(opendnp3.IOutstationApplication):
     def get_agent(self):
         """Return the singleton DNP3Agent """
         agt = self.agent
-        #print('agt is', agt)
         if agt is None:
             raise ValueError('Outstation has no configured agent')
         return agt
@@ -207,7 +206,6 @@ class DNP3Outstation(opendnp3.IOutstationApplication):
     def get_outstation(self):
         """Get the singleton instance of IOutstation."""
         outst = self.outstation
-        #print('Alkaaa',outst)
         if outst is None:
             raise AttributeError('IOutstation is not yet enabled')
         return outst
@@ -221,6 +219,7 @@ class DNP3Outstation(opendnp3.IOutstationApplication):
             to send commands to it -- see apply_update().
         """
         self.outstation = outstn
+        print("oustn", outstn)
 
     #classmethod
     def get_outstation_config(self):
@@ -319,7 +318,7 @@ class DNP3Outstation(opendnp3.IOutstationApplication):
         :param value: An instance of Analog, Binary, or another opendnp3 data value.
         :param index: (integer) Index of the data definition in the opendnp3 database.
         """
-        #_log.debug('Recording DNP3 {} measurement, index={}, value={}'.format(type(value).__name__, index, value.value))
+        #_log.debug('Recording DNP3 {} measurement, name={}, index={}, value={}'.format(type(value).__name__, value, index, value.value))
         
         #max_index = cls.get_outstation_config().get('database_sizes', 10000)
         #if index > max_index:
@@ -330,7 +329,7 @@ class DNP3Outstation(opendnp3.IOutstationApplication):
         update = builder.Build()
         try:
             self.get_outstation().Apply(update)
-            #print("Updating point values", self.get_outstation())
+            print("Updating point values", self.port)
         except AttributeError as err:
             if not os.environ.get('UNITTEST', False):
                 raise err

@@ -77,15 +77,19 @@ class DNP3Mapping():
                 m = measurement_values[y]
                 if "magnitude" in m.keys():
                    for point in self.outstation.get_agent().point_definitions.all_points():
+                       #print("Outcheck2",point)
                        if m.get("measurement_mrid") == point.measurement_id and point.magnitude != m.get("magnitude"):
                            point.magnitude = m.get("magnitude")
+                           #print("Outcheck2",point)
                            self.outstation.apply_update(opendnp3.Analog(point.magnitude), point.index)
-                         
                 elif "value" in m.keys():
                     for point in self.outstation.get_agent().point_definitions.all_points():
                         if m.get("measurement_mrid") == point.measurement_id and point.value != m.get("value"):
                             point.value = m.get("value")
                             self.outstation.apply_update(opendnp3.Binary(point.value), point.index)
+                            #print("Binary point", point)
+                            #print("On message value", m.get("value"))
+                            #print("Binary value", point.value)
         except Exception as e:
             message_str = "An error occurred while trying to translate the  message received" + str(e)
 
@@ -166,6 +170,7 @@ class DNP3Mapping():
             fuses = x.get("fuses", [])
             breakers = x.get("breakers", [])
             reclosers = x.get("reclosers", [])
+            energyconsumers = x.get("energyconsumers", [])
 
         for m in measurements:
             attribute = attribute_map['regulators']['attribute']
@@ -194,34 +199,35 @@ class DNP3Mapping():
 
             for l in range(0, 4):
                 # publishing attribute value for capacitors as Bianry/Analog Input points based on phase  attribute
-                name = uuid.uuid4().hex
+                #name = uuid.uuid4().hex
+                name = m['name']
                 description = "Name:" + m['name'] + "ConductingEquipment_type:LinearShuntCompensator" + ",Attribute:" + cap_attribute[l]  + ",Phase:" + m['phases']
                 self.assign_val_d("AO", 42, 3, self.c_ao, name, description, measurement_id, cap_attribute[l])
                 self.c_ao += 1
             for p in range(0, len(m['phases'])):
-                name =uuid.uuid4().hex
+                #name =uuid.uuid4().hex
+                name = m['name']
                 description = "Name:" + m['name'] + ",ConductingEquipment_type:LinearShuntCompensator" + ",controlAttribute:" + cap_attribute[p] + ",Phase:" + m['phases'][p]
-                # description = "Capacitor, " + m['name'] + "," + "phase -" + m['phases'][p] + ", and attribute is - " + cap_attribute[4]
                 self.assign_val_d("DO", 12, 1, self.c_do, name, description, measurement_id, cap_attribute[4])
                 self.c_do += 1
 
         for m in regulators:
             reg_attribute = attribute_map['regulators']['attribute']
             bank_phase = list(m['bankPhases'])
-            #print(f"m {m}")
             for i in range(5, 7):
                 for j in range(0, len(m['bankPhases'])):
                     measurement_id = m.get("mRID")
-                    name = uuid.uuid4().hex
+                    #name = uuid.uuid4().hex
+                    name = m['bankName'][j]
                     description = "Name:" + m['bankName'][j] + ",ConductingEquipment_type:RatioTapChanger_Reg"+ ",controlAttribute:" + reg_attribute[i]
                     self.assign_val_d("AO", 42, 3, self.c_ao, name, description, measurement_id,reg_attribute[i])
                     self.c_ao += 1
+            
             for n in range(0, 4):
                 measurement_id = m.get("mRID")
-                name = uuid.uuid4().hex
-                #print("Alka",bank_phase[n])
+                #name = uuid.uuid4().hex
+                name = m['bankName']
                 reg_attribute = attribute_map['regulators']['attribute']
-                #print(reg_attribute)
                 description = "Name:" + m['bankName'] + ",ConductingEquipment_type:RatioTapChanger_Reg" + ",Attribute:" + reg_attribute[n]
                 self.assign_val_d("AO", 42, 3, self.c_ao, name, description, measurement_id[0], reg_attribute[n])
                 self.c_ao += 1
@@ -229,14 +235,16 @@ class DNP3Mapping():
 
         for m in solarpanels:
             measurement_id = m.get("mRID")
-            name = uuid.uuid4().hex
+            #name = uuid.uuid4().hex
+            name = m['name']
             description = "Solarpanel:" + m['name'] + ",Phase:" + m['phases'] + ",measurementID:" + measurement_id
             self.assign_val_a("AO", 42, 3, self.c_ao, name, description, None, measurement_id)
             self.c_ao += 1
 
         for m in batteries:
             measurement_id = m.get("mRID")
-            name = uuid.uuid4().hex
+            #name = uuid.uuid4().hex
+            name = m['name']
             description = "Battery, " + m['name'] + ",Phase: " + m['phases'] + ",ConductingEquipment_type:PowerElectronicConnections"
             self.assign_val_a("AO", 42, 3, self.c_ao, name, description, None, measurement_id)
             self.c_ao += 1
@@ -246,7 +254,7 @@ class DNP3Mapping():
             switch_attribute = attribute_map['switches']['attribute']
             for k in range(0, len(m['phases'])):
                 phase_value = list(m['phases'])
-                name = uuid.uuid4().hex
+                name = m['name']
                 description = "Name:" + m["name"] + ",ConductingEquipment_type:LoadBreakSwitch" + "Phase:" + phase_value[k] +",controlAttribute:"+switch_attribute
                 self.assign_val_d("DO", 12, 1, self.c_do, name, description, measurement_id, switch_attribute)
                 self.c_do += 1
@@ -256,7 +264,7 @@ class DNP3Mapping():
             switch_attribute = attribute_map['switches']['attribute']
             for l in range(0, len(m['phases'])):
                 phase_value = list(m['phases'])
-                name = uuid.uuid4().hex
+                name = m['name']
                 description = "Name:" + m["name"] + ",Phase:" + phase_value[l] + ",Attribute:" + switch_attribute + ",mRID" + measurement_id
                 self.assign_val_d("DO", 12, 1, self.c_do, name, description, measurement_id, switch_attribute)
                 self.c_do += 1
@@ -266,7 +274,7 @@ class DNP3Mapping():
             switch_attribute = attribute_map['switches']['attribute']
             for n in range(0, len(m['phases'])):
                 phase_value = list(m['phases'])
-                name =uuid.uuid4().hex
+                name = m['name']
                 description = "Name: " + m["name"] + ",Phase:" + phase_value[n] + ",ConductingEquipment_type:Breaker" + ",controlAttribute:" + switch_attribute
                 self.assign_val_d("DO", 12, 1, self.c_do, name, description, measurement_id, switch_attribute)
                 self.c_do += 1
@@ -276,8 +284,18 @@ class DNP3Mapping():
             switch_attribute = attribute_map['switches']['attribute']
             for k in range(0, len(m['phases'])):
                 phase_value = list(m['phases'])
-                name = uuid.uuid4().hex
+                name = m['name']
                 description = "Recloser, " + m["name"] + "Phase: - " + phase_value[k] + ",ConductingEquipment_type:Recloser"+"controlAttribute:" + switch_attribute
+                self.assign_val_d("DO", 12, 1, self.c_do, name, description, measurement_id, switch_attribute)
+                self.c_do += 1
+        
+        for m in energyconsumers:
+            measurement_id = m.get("mRID")
+            #switch_attribute = attribute_map['switches']['attribute']
+            for p in range(0, len(m['phases'])):
+                phase_value = list(m['phases'])
+                name = m['name'] + "_Phase-" + phase_value[p]
+                description = "Energyconsumer-" + m["name"] + " Phase: - " + phase_value[p] + ",ConductingEquipment_type:EnergyConsumer"
                 self.assign_val_d("DO", 12, 1, self.c_do, name, description, measurement_id, switch_attribute)
                 self.c_do += 1
 
