@@ -74,14 +74,14 @@ class Processor(object):
                     if point.name in str(point_value.point_def) and point.attribute == 'Switch.open':
                         if 'ON' in str(command.functionCode):
                             self._diff.clear()
-                            self._diff.add_difference(point.measurement_id, point.attribute, 1, 0)
+                            self._diff.add_difference(point.measurement_id, point.attribute, 0, 1)
                             msg = self._diff.get_message()
                             self._gapps.send(self._publish_to_topic, json.dumps(msg))
                             print(json.dumps(msg))
 
                         else:
                             self._diff.clear()
-                            self._diff.add_difference(point.measurement_id, point.attribute, 0, 1)
+                            self._diff.add_difference(point.measurement_id, point.attribute, 1,0)
                             msg = self._diff.get_message()
                             self._gapps.send(self._publish_to_topic, json.dumps(msg))
                             print(json.dumps(msg))
@@ -278,6 +278,7 @@ def start_outstation(outstation_config, processor):
     dnp3_outstation = DNP3Outstation('0.0.0.0', outstation_config['port'], outstation_config)
     dnp3_outstation.set_agent(processor)
     dnp3_outstation.start()
+    processor.outstation = dnp3_outstation
     _log.debug('DNP3 initialization complete. In command loop.')
     
     # Ad-hoc tests can be performed at this point if desired.
