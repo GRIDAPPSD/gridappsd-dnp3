@@ -92,7 +92,7 @@ class DNP3Mapping():
                            point.magnitude = math.sin(angle) * m.get("magnitude")
                            self.outstation.apply_update(opendnp3.Analog(point.magnitude), point.index)
                        
-                       elif point.measurement_type != "VA" and "VAR" not  in point.name:
+                       elif point.measurement_type != "VA" and "Watts"  in point.name:
                            angle1 = math.radians(m.get("angle"))
                            point.magnitude = math.cos(angle1) * m.get("magnitude")
                            self.outstation.apply_update(opendnp3.Analog(point.magnitude), point.index)
@@ -195,6 +195,24 @@ class DNP3Mapping():
                 self.assign_val_a("AI", 30, 1, self.c_ai, name, description, measurement_type, measurement_id)
                 self.c_ai += 1
 
+                if m.get("measurementType") == "VA":
+                    measurement_id = m.get("mRID")
+                    name1 = m['name'] + '-' + m['phases'] +  '-VAR-value'
+                    name2 = m['name'] + '-' + m['phases'] + '-Watts-value'
+                    name3 = m['name'] + '-' + m['phases'] + '-angle'
+
+                    description1 = "Name:" + m['name'] + ",Phase:" + m['phases'] + ",MeasurementType:" + "VAR" + ",ConnectivityNode:" + m.get("ConnectivityNode") +",SimObject:" + m.get("SimObject")
+                    description2 = "Name:" + m['name'] + ",Phase:" + m['phases'] + ",MeasurementType:" + "Watt" + ",ConnectivityNode:" + m.get("ConnectivityNode") +",SimObject:" + m.get("SimObject")
+                    description3 = "Name:" + m['name'] + ",Phase:" + m['phases'] + ",MeasurementType:" + "angle" + ",ConnectivityNode:" + m.get("ConnectivityNode") + ",SimObject:" + m.get("SimObject")
+                    if m['MeasurementClass'] == "Analog":
+                        self.assign_val_a("AI", 30, 1, self.c_ai, name1, description1, measurement_type, measurement_id)
+                        self.c_ai += 1
+                        self.assign_val_a("AI", 30, 1, self.c_ai, name2, description2, measurement_type, measurement_id)
+                        self.c_ai += 1
+                        self.assign_val_a("AI", 30, 1, self.c_ai, name3, description3, measurement_type, measurement_id)
+                        self.c_ai += 1
+
+
             elif m['MeasurementClass'] == "Discrete" and  measurement_type == "Pos":
                 if "Reg" in m['name']:
                     for r in range(5, 7):
@@ -204,16 +222,6 @@ class DNP3Mapping():
                     self.assign_val_a("DI", 1, 2, self.c_di, name, description, measurement_type, measurement_id)
                     self.c_di += 1
 
-        for m in measurements:
-            attribute = attribute_map['regulators']['attribute']
-            measurement_type = m.get("measurementType")
-            if m.get("measurementType") == "VA":
-                measurement_id = m.get("mRID")
-                name = m['name'] + '-' + m['phases'] +  '-VAR-value'
-                description = "Name:" + m['name'] + ",Phase:" + m['phases'] + ",MeasurementType:" + measurement_type + ",ConnectivityNode:" + m.get("ConnectivityNode") +",SimObject:" + m.get("SimObject")
-                if m['MeasurementClass'] == "Analog":
-                    self.assign_val_a("AI", 30, 1, self.c_ai, name, description, measurement_type, measurement_id)
-                    self.c_ai += 1
 
         for m in capacitors:
             measurement_id = m.get("mRID")
@@ -226,7 +234,7 @@ class DNP3Mapping():
                 self.assign_val_d("AO", 42, 3, self.c_ao, name, description, measurement_id, cap_attribute[l])
                 self.c_ao += 1
             for p in range(0, len(m['phases'])):
-                name =uuid.uuid4().hex
+                name = m['name'] + m['phases'][p]
                 description = "Name:" + m['name'] + ",ConductingEquipment_type:LinearShuntCompensator" + ",controlAttribute:" + cap_attribute[p] + ",Phase:" + m['phases'][p]
                 # description = "Capacitor, " + m['name'] + "," + "phase -" + m['phases'][p] + ", and attribute is - " + cap_attribute[4]
                 self.assign_val_d("DO", 12, 1, self.c_do, name, description, measurement_id, cap_attribute[4])
