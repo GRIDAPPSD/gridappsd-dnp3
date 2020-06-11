@@ -189,7 +189,7 @@ class DNP3Mapping():
             attribute = attribute_map['regulators']['attribute']
             measurement_type = m.get("measurementType")
             measurement_id = m.get("mRID")
-            name= m['name']
+            name= m['name'] + '-' + m['phases']
             description = "Name:" + m['name'] + ",Phase:" + m['phases'] + ",MeasurementType:" + measurement_type + ",ConnectivityNode:" + m.get("ConnectivityNode") +",SimObject:" + m.get("SimObject")
             if m['MeasurementClass'] == "Analog":
                 self.assign_val_a("AI", 30, 1, self.c_ai, name, description, measurement_type, measurement_id)
@@ -209,7 +209,7 @@ class DNP3Mapping():
             measurement_type = m.get("measurementType")
             if m.get("measurementType") == "VA":
                 measurement_id = m.get("mRID")
-                name = m['name'] + '_' + 'VAR-value'
+                name = m['name'] + '-' + m['phases'] +  '-VAR-value'
                 description = "Name:" + m['name'] + ",Phase:" + m['phases'] + ",MeasurementType:" + measurement_type + ",ConnectivityNode:" + m.get("ConnectivityNode") +",SimObject:" + m.get("SimObject")
                 if m['MeasurementClass'] == "Analog":
                     self.assign_val_a("AI", 30, 1, self.c_ai, name, description, measurement_type, measurement_id)
