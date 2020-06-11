@@ -92,10 +92,15 @@ class DNP3Mapping():
                            point.magnitude = math.sin(angle) * m.get("magnitude")
                            self.outstation.apply_update(opendnp3.Analog(point.magnitude), point.index)
                        
-                       elif point.measurement_type != "VA" and "Watts"  in point.name:
+                       elif point.measurement_type == "VA" and "Watts"  in point.name:
                            angle1 = math.radians(m.get("angle"))
                            point.magnitude = math.cos(angle1) * m.get("magnitude")
                            self.outstation.apply_update(opendnp3.Analog(point.magnitude), point.index)
+                       
+                       elif point.measurement_type == "VA" and "angle"  in point.name:
+                           angle2 = math.radians(m.get("angle"))
+                           #point.magnitude = math.cos(angle1) * m.get("magnitude")
+                           self.outstation.apply_update(opendnp3.Analog(angle2), point.index)
 
                 elif "value" in m.keys():
                     for point in self.outstation.get_agent().point_definitions.all_points():
