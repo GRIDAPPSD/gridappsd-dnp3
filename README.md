@@ -16,19 +16,28 @@ The dnp3 service will convert CIM measurements points to dnp3 points to integrat
 └── gridappsd-dnp3	
 
 ```
+## Adding the port of the Master server to GridAPPS-D docker file 
 
-## Adding the dnp3 to container
+To make a connection between GridAPPS-D and the master(DNP3 server) , the port number of the server has to be entered in the docker-compose.yml file.
 
-In order to add the dnp3 service to the container you will need to modify the docker-compose.yml file included in the gridappsd-docker repository.  Under the gridappsd service there is an example volumes leaf that is commented out.  Uncomment and modify these lines to add the path for the state estimator and conf file.  Adding these lines will mount the stat estimator on the container's filesystem when the container is started.
+cd ../gridappsd-docker
+vi docker-compose.yml
 
-```
- #    volumes:
- #       - ~/git/gridappsd-state-estimator/state-estimator:/gridappsd/services/state-estimator
- #       - ~/git/gridappsd-state-estimator/state-estimator/state-estimator.config:/gridappsd/services/state-estimator.config
+Edit the line below -61616:61616 and add 20000:20000 as shown below. Save the file and rerun your container(./run.sh -t develop). 
 
-     volumes:
-        - ~/git/gridappsd-dnp3/dnp3:/gridappsd/services/dnp3
-        - ~/git/gridappsd-dnp3/dnp3/dnp3.config:/gridappsd/services/dnp3.config
+ gridappsd:
+    image: gridappsd/gridappsd${GRIDAPPSD_TAG}
+    ports:
+      # Each of the following are port mappings from the host into the
+      # container.  The first three are used by GridAPPS-D for the different
+      # protocols.
+      - 61613:61613
+      - 61614:61614
+      - 61616:61616
+      - 20000:20000
+      
+      
+ To check if the port was added to gridappsd conatainer run docker ps -a and see if 20000 is present for the gridappsd container.
 
 ```
 
