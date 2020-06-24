@@ -25,6 +25,7 @@ vi docker-compose.yml
 
 Edit the line below -61616:61616 and add 20000:20000 as shown below. Save the file and rerun your container(./run.sh -t develop). 
 
+``` bash
  gridappsd:
     image: gridappsd/gridappsd${GRIDAPPSD_TAG}
     ports:
@@ -35,9 +36,8 @@ Edit the line below -61616:61616 and add 20000:20000 as shown below. Save the fi
       - 61614:61614
       - 61616:61616
       - 20000:20000
-      
+  ```    
       
  To check if the port was added to gridappsd conatainer run docker ps -a and see if 20000 is present for the gridappsd container.
 
-```
 
