@@ -18,7 +18,7 @@ The dnp3 service will convert CIM measurements points to dnp3 points to integrat
 ```
 ## Adding the port of the Master server to GridAPPS-D docker file 
 
-To make a connection between GridAPPS-D and the master(DNP3 server) , the port number of the server has to be entered in the docker-compose.yml file.
+To make a connection between GridAPPS-D and the master(DNP3 server) , the port number of the server has to be entered in the docker-compose.yml file. For example, here we are adding 20000.
 
 cd ../gridappsd-docker
 vi docker-compose.yml
