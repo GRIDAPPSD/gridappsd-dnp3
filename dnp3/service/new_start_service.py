@@ -317,6 +317,12 @@ def load_point_definitions(self):
 def publish_outstation_status(status_string):
     print(status_string)
 
+def on_message(simulation_id,message):
+    updates = dnp3_object_list[0].create_message_updates(simulation_id, message)
+    
+    for cimMapping in dnp3_object_list:
+        cimMapping.outstation.apply_compiled_updates(updates)
+
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('simulation_id', help="Simulation id")
@@ -335,6 +341,7 @@ if __name__ == '__main__':
     gapps = GridAPPSD(opts.simulation_id, address=utils.get_gridappsd_address(),
                       username=utils.get_gridappsd_user(), password=utils.get_gridappsd_pass())
     
+    gapps.subscribe(simulation_output_topic(opts.simulation_id), on_message)
 
     
     dnp3_object_list = []
@@ -343,18 +350,14 @@ if __name__ == '__main__':
     for obj in port_config: 
         dnp3_object = DNP3Mapping(cim_dict)
         dnp3_object._create_dnp3_object_map()
-        gapps.subscribe(simulation_output_topic(opts.simulation_id),dnp3_object.on_message)
         
         if check_valid_points:
-
             with open("/tmp/json_out", 'w') as fp:
                 out_dict = dict({'points': dnp3_object.out_json})
                 json.dump(out_dict, fp, indent=2, sort_keys=True)
-
             if not dnp3_object.out_json:
                 sys.stderr.write("invalid points specified in json configuration file.")
                 sys.exit(10)
-                
             check_valid_points = False
 
         oustation = obj
@@ -365,6 +368,7 @@ if __name__ == '__main__':
         outstation = start_outstation(oustation, processor)
         #for outstation in outstation_list:
         dnp3_object.load_outstation(outstation)
+        dnp3_object_list.append(dnp3_object)
     # gapps.send(simulation_input_topic(opts.simulation_id), processor.process_point_value())
      
     try:

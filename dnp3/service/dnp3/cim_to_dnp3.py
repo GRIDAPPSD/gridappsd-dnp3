@@ -6,7 +6,7 @@ import random
 import uuid
 import math
 
-from pydnp3 import opendnp3
+from pydnp3 import opendnp3, openpal, asiopal, asiodnp3
 from typing import List, Dict, Union, Any
 from dnp3.outstation import DNP3Outstation
 from dnp3.points import (
@@ -109,6 +109,68 @@ class DNP3Mapping():
                              self.outstation.apply_update(opendnp3.Binary(point.value), point.index)
         except Exception as e:
             message_str = "An error occurred while trying to translate the  message received" + str(e)
+
+    def create_message_updates(self, simulation_id, message):
+        """ This method creates an atomic "updates" object for any outstation to consume via their .Apply method.
+        ----------
+        headers: dict
+            A dictionary of headers that could be used to determine topic of origin and
+            other attributes.
+        message: object
+
+        """
+        try:
+            message_str = 'received message ' + str(message)
+
+            builder = asiodnp3.UpdateBuilder()
+            json_msg = yaml.safe_load(str(message))
+
+            if type(json_msg) != dict:
+                raise ValueError(
+                    ' is not a json formatted string.'
+                    + '\njson_msg = {0}'.format(json_msg))
+
+            # fncs_input_message = {"{}".format(simulation_id): {}}
+            measurement_values = json_msg["message"]["measurements"]
+
+            # storing the magnitude and measurement_mRID values to publish in the dnp3 points for measurement key values
+            for y in measurement_values:
+                # print(self.processor_point_def.points_by_mrid())
+                m = measurement_values[y]
+                if "magnitude" in m.keys():
+                   for point in self.outstation.get_agent().point_definitions.all_points():
+                       #print("point",point)
+                       #print("y",y)
+                       if m.get("measurement_mrid") == point.measurement_id and point.magnitude != float(m.get("magnitude")):
+                           point.magnitude = float(m.get("magnitude"))
+                           builder.Update(opendnp3.Analog(point.magnitude), point.index)
+
+                       elif point.measurement_type == "VA" and "VAR" in point.name:
+                           angle = math.radians(m.get("angle"))
+                           point.magnitude = math.sin(angle) * float(m.get("magnitude"))
+                           builder.Update(opendnp3.Analog(point.magnitude), point.index)
+                       
+                       elif point.measurement_type == "VA" and "Watts"  in point.name:
+                           angle1 = math.radians(m.get("angle"))
+                           point.magnitude = math.cos(angle1) * float(m.get("magnitude"))
+                           builder.Update(opendnp3.Analog(point.magnitude), point.index)
+                       
+                       elif point.measurement_type == "VA" and "angle"  in point.name:
+                           angle2 = math.radians(m.get("angle"))
+                           #point.magnitude = math.cos(angle1) * m.get("magnitude")
+                           builder.Update(opendnp3.Analog(angle2), point.index)
+
+                elif "value" in m.keys():
+                    for point in self.outstation.get_agent().point_definitions.all_points():
+                        if m.get("measurement_mrid") == point.measurement_id and point.value != m.get("value"):
+                             point.value = m.get("value")
+                             builder.Update(opendnp3.Binary(point.value), point.index)
+
+            print("Updates Created")
+            return builder.Build()
+        except Exception as e:
+            message_str = "An error occurred while trying to translate the  message received" + str(e)
+
 
     def assign_val_a(self, data_type, group, variation, index, name, description, measurement_type, measurement_id):
         """ Method is to initialize  parameters to be used for generating  output  points for measurement key values """
