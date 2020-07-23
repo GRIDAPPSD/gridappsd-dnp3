@@ -1,4 +1,8 @@
 pydnp3==0.1.0
+<<<<<<< HEAD
 PyYAML==3.12
+=======
+PyYAML==5.1
+>>>>>>> origin/Oese_new_branch
 pytz==2016.6.1
 gridappsd-python

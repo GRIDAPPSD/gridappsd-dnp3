@@ -34,7 +34,11 @@
 
 import os
 import logging
+<<<<<<< HEAD
 
+=======
+import json
+>>>>>>> origin/Oese_new_branch
 from pydnp3 import opendnp3, openpal, asiopal, asiodnp3
 
 _log = logging.getLogger(__name__)
@@ -69,7 +73,13 @@ class DNP3Outstation(opendnp3.IOutstationApplication):
     """
 
     outstation = None
+<<<<<<< HEAD
     outstation_config = {}
+=======
+
+    outstation_config = {}
+    print(outstation_config)
+>>>>>>> origin/Oese_new_branch
     agent = None
 
     def __init__(self, local_ip, port, outstation_config):
@@ -90,8 +100,13 @@ class DNP3Outstation(opendnp3.IOutstationApplication):
         """
         super(DNP3Outstation, self).__init__()
         self.local_ip = local_ip
+<<<<<<< HEAD
         print(local_ip),
         self.port = port
+=======
+        self.port = port
+        #print(local_ip),
+>>>>>>> origin/Oese_new_branch
         self.set_outstation_config(outstation_config)
         # The following variables are initialized after start() is called.
         self.stack_config = None
@@ -101,6 +116,7 @@ class DNP3Outstation(opendnp3.IOutstationApplication):
         self.listener = None
         self.channel = None
         self.command_handler = None
+<<<<<<< HEAD
 
     def start(self):
         _log.debug('Configuring the DNP3 stack.')
@@ -112,6 +128,29 @@ class DNP3Outstation(opendnp3.IOutstationApplication):
         self.stack_config.outstation.params.allowUnsolicited = self.outstation_config.get('allow_unsolicited', False)
         self.stack_config.link.LocalAddr = self.outstation_config.get('link_local_addr', 1)
         self.stack_config.link.RemoteAddr = self.outstation_config.get('link_remote_addr', 1024)
+=======
+        #self.port_config = port_file
+
+        #with open("/tmp/port.json", 'r') as f:
+        #    self.port_config = json.load(f)
+        #    for m in self.port_config: 
+        #        self.port = m['port']
+    
+    def start(self):
+        _log.debug('Configuring the DNP3 stack.')
+        _log.debug(str(self.outstation_config))
+
+        #for m in self.port_config:
+        self.stack_config = asiodnp3.OutstationStackConfig(opendnp3.DatabaseSizes.AllTypes(self.outstation_config.get('database_sizes', 10000)))
+        _log.debug(self.stack_config)
+        self.stack_config.outstation.eventBufferConfig = opendnp3.EventBufferConfig.AllTypes(self.outstation_config.get('event_buffers', 10))
+        self.stack_config.outstation.params.allowUnsolicited = self.outstation_config.get('allow_unsolicited', False)
+            #for x in self.port_config:
+           # link_addr = m['link_local_addr']
+           # remote_addr = m['link_remote_addr']
+        self.stack_config.link.LocalAddr = self.outstation_config.get('link_local_addr', 1)
+        self.stack_config.link.RemoteAddr = self.outstation_config.get('link_remote_addr',1024)
+>>>>>>> origin/Oese_new_branch
         self.stack_config.link.KeepAliveTimeout = openpal.TimeDuration().Max()
 
         # Configure the outstation database of points based on the contents of the data dictionary.
@@ -119,8 +158,13 @@ class DNP3Outstation(opendnp3.IOutstationApplication):
         db_config = self.stack_config.dbConfig
         _log.debug(db_config)
         for point in self.get_agent().point_definitions.all_points():
+<<<<<<< HEAD
             #_log.debug("Adding Point: {}".format(point))
             # print(point)
+=======
+            #print("Agent is", self.get_agent())
+            #_log.debug("Adding Point: {}".format(point))
+>>>>>>> origin/Oese_new_branch
             if point.point_type == 'Analog Input':
                 cfg = db_config.analog[int(point.index)]
             elif point.point_type == 'Binary Input':
@@ -137,17 +181,36 @@ class DNP3Outstation(opendnp3.IOutstationApplication):
         threads_to_allocate = self.outstation_config.get('threads_to_allocate', 1)
         # self.log_handler = asiodnp3.ConsoleLogger().Create()              # (or use this during regression testing)
         # self.log_handler = MyLogger().Create()
+<<<<<<< HEAD
         self.log_handler = MyLogger()
         self.manager = asiodnp3.DNP3Manager(threads_to_allocate, self.log_handler)
+=======
+        self.log_handler = MyLogger(self)
+        self.manager = asiodnp3.DNP3Manager(threads_to_allocate, self.log_handler)
+        #print('self', self.manager)
+>>>>>>> origin/Oese_new_branch
 
         _log.debug('Creating the DNP3 channel, a TCP server.')
         self.retry_parameters = asiopal.ChannelRetry().Default()
         # self.listener = asiodnp3.PrintingChannelListener().Create()       # (or use this during regression testing)
+<<<<<<< HEAD
         self.listener = AppChannelListener()
+=======
+        self.listener = AppChannelListener(self)
+        #print(self.listener)
+        #print("Starting TCP server 2000000")
+        print('**********************************************')
+        print(self.retry_parameters)
+        print(self.local_ip)
+        print(self.port)
+        print(self.listener)
+        print('**********************************************')
+>>>>>>> origin/Oese_new_branch
         self.channel = self.manager.AddTCPServer("server",
                                                  self.dnp3_log_level(),
                                                  self.retry_parameters,
                                                  self.local_ip,
+<<<<<<< HEAD
                                                  self.port,
                                                  self.listener)
 
@@ -159,6 +222,19 @@ class DNP3Outstation(opendnp3.IOutstationApplication):
         # Set the singleton instance that communicates with the Master.
         self.set_outstation(self.outstation)
 
+=======
+                                                 int(self.port),
+                                                 self.listener)
+         
+        
+        #_log.debug(str(self.channel))
+        _log.debug('Adding the DNP3 Outstation to the channel.')
+        # self.command_handler =  opendnp3.SuccessCommandHandler().Create() # (or use this during regression testing)
+        self.command_handler = OutstationCommandHandler(self)
+        self.outstation = self.channel.AddOutstation("outstation", self.command_handler, self, self.stack_config)
+        # Set the singleton instance that communicates with the Master.
+        self.set_outstation(self.outstation)
+>>>>>>> origin/Oese_new_branch
         _log.info('Enabling the DNP3 Outstation. Traffic can now start to flow.')
         self.outstation.Enable()
 
@@ -168,14 +244,22 @@ class DNP3Outstation(opendnp3.IOutstationApplication):
         self.port = port
         self.outstation_config = outstation_config
 
+<<<<<<< HEAD
     @classmethod
     def get_agent(cls):
         """Return the singleton DNP3Agent """
         agt = cls.agent
+=======
+    #@classmethod
+    def get_agent(self):
+        """Return the singleton DNP3Agent """
+        agt = self.agent
+>>>>>>> origin/Oese_new_branch
         if agt is None:
             raise ValueError('Outstation has no configured agent')
         return agt
 
+<<<<<<< HEAD
     @classmethod
     def set_agent(cls, agent):
         """Set the singleton DNP3Agent """
@@ -185,18 +269,35 @@ class DNP3Outstation(opendnp3.IOutstationApplication):
     def get_outstation(cls):
         """Get the singleton instance of IOutstation."""
         outst = cls.outstation
+=======
+    #@classmethod
+    def set_agent(self, agent):
+        """Set the singleton DNP3Agent """
+        self.agent = agent
+
+    #@classmethod
+    def get_outstation(self):
+        """Get the singleton instance of IOutstation."""
+        outst = self.outstation
+>>>>>>> origin/Oese_new_branch
         if outst is None:
             raise AttributeError('IOutstation is not yet enabled')
         return outst
 
+<<<<<<< HEAD
     @classmethod
     def set_outstation(cls, outstn):
+=======
+    #@classmethod
+    def set_outstation(self, outstn):
+>>>>>>> origin/Oese_new_branch
         """
             Set the singleton instance of IOutstation, as returned from the channel's AddOutstation call.
 
             Making IOutstation available as a singleton allows other classes
             to send commands to it -- see apply_update().
         """
+<<<<<<< HEAD
         cls.outstation = outstn
 
     @classmethod
@@ -206,6 +307,18 @@ class DNP3Outstation(opendnp3.IOutstationApplication):
 
     @classmethod
     def set_outstation_config(cls, outstn_cfg):
+=======
+        self.outstation = outstn
+        print("oustn", outstn)
+
+    #classmethod
+    def get_outstation_config(self):
+        """Get the outstation_config, a dictionary of configuration parameters."""
+        return self.outstation_config
+
+    #@classmethod
+    def set_outstation_config(self, outstn_cfg):
+>>>>>>> origin/Oese_new_branch
         """
             Set the outstation_config.
 
@@ -213,7 +326,11 @@ class DNP3Outstation(opendnp3.IOutstationApplication):
 
         :param outstn_cfg: A dictionary of configuration parameters.
         """
+<<<<<<< HEAD
         cls.outstation_config = outstn_cfg
+=======
+        self.outstation_config = outstn_cfg
+>>>>>>> origin/Oese_new_branch
 
     def dnp3_log_level(self):
         """
@@ -286,8 +403,13 @@ class DNP3Outstation(opendnp3.IOutstationApplication):
         _log.debug('In DNP3 WarmRestartSupport')
         return opendnp3.RestartMode.UNSUPPORTED
 
+<<<<<<< HEAD
     @classmethod
     def apply_update(cls, value, index):
+=======
+    #@classmethod
+    def apply_update(self, value, index):
+>>>>>>> origin/Oese_new_branch
         """
             Record an opendnp3 data value (Analog, Binary, etc.) in the outstation's database.
 
@@ -296,16 +418,30 @@ class DNP3Outstation(opendnp3.IOutstationApplication):
         :param value: An instance of Analog, Binary, or another opendnp3 data value.
         :param index: (integer) Index of the data definition in the opendnp3 database.
         """
+<<<<<<< HEAD
         #_log.debug('Recording DNP3 {} measurement, index={}, value={}'.format(type(value).__name__, index, value.value))
         max_index = cls.get_outstation_config().get('database_sizes', 10000)
         if index > max_index:
             raise ValueError('Attempt to set a value for index {} which exceeds database size {}'.format(index,
                                                                                                          max_index))
+=======
+        #_log.debug('Recording DNP3 {} measurement, name={}, index={}, value={}'.format(type(value).__name__, value, index, value.value))
+        
+        #max_index = cls.get_outstation_config().get('database_sizes', 10000)
+        #if index > max_index:
+        #    raise ValueError('Attempt to set a value for index {} which exceeds database size {}'.format(index,max_index)) 
+       
+>>>>>>> origin/Oese_new_branch
         builder = asiodnp3.UpdateBuilder()
         builder.Update(value, index)
         update = builder.Build()
         try:
+<<<<<<< HEAD
             cls.get_outstation().Apply(update)
+=======
+            self.get_outstation().Apply(update)
+            print("Updating point values", self.port)
+>>>>>>> origin/Oese_new_branch
         except AttributeError as err:
             if not os.environ.get('UNITTEST', False):
                 raise err
@@ -332,6 +468,12 @@ class OutstationCommandHandler(opendnp3.ICommandHandler):
         ICommandHandler implements the Outstation's handling of Select and Operate,
         which relay commands and data from the Master to the Outstation.
     """
+<<<<<<< HEAD
+=======
+    def __init__(self,dnp3Object):
+        super(OutstationCommandHandler, self).__init__()
+        self.dnp3Object = dnp3Object
+>>>>>>> origin/Oese_new_branch
 
     def Start(self):
         # This debug line is too chatty...
@@ -352,11 +494,18 @@ class OutstationCommandHandler(opendnp3.ICommandHandler):
         :param index: int
         :return: CommandStatus
         """
+<<<<<<< HEAD
         return DNP3Outstation.get_agent().process_point_value('Select', command, index, None)
 
     def Operate(self, command, index, op_type):
         """
             The Master sent an Operate command to the Outstation. Handle it.
+=======
+        return self.dnp3Object.get_agent().process_point_value('Select', command, index, None)
+
+    def Operate(self, command, index, op_type):
+        """
+>>>>>>> origin/Oese_new_branch
 
         :param command: ControlRelayOutputBlock,
                         AnalogOutputInt16, AnalogOutputInt32, AnalogOutputFloat32, or AnalogOutputDouble64.
@@ -364,7 +513,11 @@ class OutstationCommandHandler(opendnp3.ICommandHandler):
         :param op_type: OperateType
         :return: CommandStatus
         """
+<<<<<<< HEAD
         return DNP3Outstation.get_agent().process_point_value('Operate', command, index, op_type)
+=======
+        return self.dnp3Object.get_agent().process_point_value('Operate', command, index, op_type)
+>>>>>>> origin/Oese_new_branch
 
 
 class AppChannelListener(asiodnp3.IChannelListener):
@@ -372,8 +525,15 @@ class AppChannelListener(asiodnp3.IChannelListener):
         IChannelListener has been overridden to implement application-specific channel behavior.
     """
 
+<<<<<<< HEAD
     def __init__(self):
         super(AppChannelListener, self).__init__()
+=======
+    def __init__(self,dnp3Object):
+        
+        super(AppChannelListener, self).__init__()
+        self.dnp3Object = dnp3Object
+>>>>>>> origin/Oese_new_branch
 
     def OnStateChange(self, state):
         """
@@ -381,7 +541,12 @@ class AppChannelListener(asiodnp3.IChannelListener):
 
         :param state: A ChannelState.
         """
+<<<<<<< HEAD
         DNP3Outstation.get_agent().publish_outstation_status(str(state))
+=======
+        self.dnp3Object.get_agent().publish_outstation_status(str(state))
+        #self.get_agent().publish_outstation_status(str(state))
+>>>>>>> origin/Oese_new_branch
 
 
 # class MyLogger(asiodnp3.ConsoleLogger):
@@ -390,8 +555,14 @@ class MyLogger(openpal.ILogHandler):
         ILogHandler has been overridden to implement application-specific logging behavior.
     """
 
+<<<<<<< HEAD
     def __init__(self):
         super(MyLogger, self).__init__()
+=======
+    def __init__(self, dnp3Object):
+        super(MyLogger, self).__init__()
+        self.dnp3Object = dnp3Object
+>>>>>>> origin/Oese_new_branch
 
     def Log(self, entry):
         """Write a DNP3 log entry to the logger (debug level)."""
@@ -400,13 +571,22 @@ class MyLogger(openpal.ILogHandler):
         message = entry.message
         _log.debug('DNP3Log {0}\t(filters={1}) {2}'.format(location, filters, message))
         # This is here as an example of how to send a specific log entry to the message bus as outstation status.
+<<<<<<< HEAD
         # if 'Accepted connection' in message or 'Listening on' in message:
         #     DNP3Outstation.get_agent().publish_outstation_status(str(message))
+=======
+        if 'Accepted connection' in message or 'Listening on' in message:
+            self.dnp3Object.get_agent().publish_outstation_status(str(message))
+>>>>>>> origin/Oese_new_branch
 
 
 def main():
     """The Outstation has been started from the command line. Execute ad-hoc tests if desired."""
     dnp3_outstation = DNP3Outstation('0.0.0.0', 20000, {})
+<<<<<<< HEAD
+=======
+    #dnp3_outstation = DNP3Outstation('0.0.0.0', 20001, {})
+>>>>>>> origin/Oese_new_branch
     dnp3_outstation.start()
     _log.debug('DNP3 initialization complete. In command loop.')
     # Ad-hoc tests can be performed at this point if desired.

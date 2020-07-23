@@ -74,14 +74,22 @@ class Processor(object):
                     if point.name in str(point_value.point_def) and point.attribute == 'Switch.open':
                         if 'ON' in str(command.functionCode):
                             self._diff.clear()
+<<<<<<< HEAD
                             self._diff.add_difference(point.measurement_id, point.attribute, 1, 0)
+=======
+                            self._diff.add_difference(point.measurement_id, point.attribute, 0, 1)
+>>>>>>> origin/Oese_new_branch
                             msg = self._diff.get_message()
                             self._gapps.send(self._publish_to_topic, json.dumps(msg))
                             print(json.dumps(msg))
 
                         else:
                             self._diff.clear()
+<<<<<<< HEAD
                             self._diff.add_difference(point.measurement_id, point.attribute, 0, 1)
+=======
+                            self._diff.add_difference(point.measurement_id, point.attribute, 1,0)
+>>>>>>> origin/Oese_new_branch
                             msg = self._diff.get_message()
                             self._gapps.send(self._publish_to_topic, json.dumps(msg))
                             print(json.dumps(msg))
@@ -104,19 +112,36 @@ class Processor(object):
                 _log.debug("command_status={},command_value={}".format(command.status, command.value))
                 for point in self.outstation.get_agent().point_definitions.all_points():
                     # print(command.value, point.attribute)
+<<<<<<< HEAD
                     if point.name in str(point_value.point_def) and "Regulating" or "TapChanger" in point.attribute :
+=======
+                    if point.name in str(point_value.point_def) and "RegulatingControl.Mode" in point.attribute :
+>>>>>>> origin/Oese_new_branch
                         self._diff.clear()
                         self._diff.add_difference(point.measurement_id, point.attribute, command.value, 0) # value : received value
                         msg = self._diff.get_message()
                         self._gapps.send(self._publish_to_topic, json.dumps(msg))
                         print(json.dumps(msg))
+<<<<<<< HEAD
                     elif point.name in str(point_value.point_def) and "PowerElectronicsConnection" or "EnergyConsumer.p" or "ShuntCompensator.aVRDelay" in point.attribute:
+=======
+                    elif point.name in str(point_value.point_def) and "TapChanger.lineDropR" in point.attribute:
+>>>>>>> origin/Oese_new_branch
                         self._diff.clear()
                         self._diff.add_difference(point.measurement_id, point.attribute, command.value,0)
                         msg = self._diff.get_message()
                         self._gapps.send(self._publish_to_topic, json.dumps(msg))
                         print(json.dumps(msg))
+<<<<<<< HEAD
                     
+=======
+                    elif point.name in str(point_value.point_def) and "Shunt" in point.attribute:
+                        self._diff.clear()
+                        self._diff.add_difference(point.measurement_id, point.attribute, command.value , 0)
+                        msg = self._diff.get_message()
+                        self._gapps.send(self._publish_to_topic, json.dumps(msg))
+                        print(json.dumps(msg))
+>>>>>>> origin/Oese_new_branch
             if point_value is None:
                 return opendnp3.CommandStatus.DOWNSTREAM_FAIL
 
@@ -269,10 +294,20 @@ class Processor(object):
 def start_outstation(outstation_config, processor):
     print("*********************************")
     print(str(outstation_config))
+<<<<<<< HEAD
     dnp3_outstation = DNP3Outstation('0.0.0.0', 20000, outstation_config)
     dnp3_outstation.set_agent(processor)
     dnp3_outstation.start()
     _log.debug('DNP3 initialization complete. In command loop.')
+=======
+    #dnp3_outstation = DNP3Outstation('0.0.0.0', 20000, outstation_config)
+    dnp3_outstation = DNP3Outstation('0.0.0.0', outstation_config['port'], outstation_config)
+    dnp3_outstation.set_agent(processor)
+    dnp3_outstation.start()
+    processor.outstation = dnp3_outstation
+    _log.debug('DNP3 initialization complete. In command loop.')
+    
+>>>>>>> origin/Oese_new_branch
     # Ad-hoc tests can be performed at this point if desired.
     return dnp3_outstation
 
@@ -314,10 +349,18 @@ if __name__ == '__main__':
     parser.add_argument('simulation_id', help="Simulation id")
     opts = parser.parse_args()
     simulation_id = opts.simulation_id
+<<<<<<< HEAD
+=======
+    
+    with open("/tmp/port.json", 'r') as f:
+        port_config = json.load(f)
+    print(port_config)
+>>>>>>> origin/Oese_new_branch
 
     filepath = "/tmp/gridappsd_tmp/{}/model_dict.json".format(simulation_id)
     with open(filepath, 'r') as fp:
         cim_dict = json.load(fp)
+<<<<<<< HEAD
     dnp3_object = DNP3Mapping(cim_dict)
     dnp3_object._create_dnp3_object_map()
 
@@ -341,6 +384,43 @@ if __name__ == '__main__':
     dnp3_object.load_point_def(point_def)
     outstation = start_outstation(oustation, processor)
     dnp3_object.load_outstation(outstation)
+=======
+        
+    
+    gapps = GridAPPSD(opts.simulation_id, address=utils.get_gridappsd_address(),
+                      username=utils.get_gridappsd_user(), password=utils.get_gridappsd_pass())
+    
+
+    
+    dnp3_object_list = []
+    check_valid_points = True
+    
+    for obj in port_config: 
+        dnp3_object = DNP3Mapping(cim_dict)
+        dnp3_object._create_dnp3_object_map()
+        gapps.subscribe(simulation_output_topic(opts.simulation_id),dnp3_object.on_message)
+        
+        if check_valid_points:
+
+            with open("/tmp/json_out", 'w') as fp:
+                out_dict = dict({'points': dnp3_object.out_json})
+                json.dump(out_dict, fp, indent=2, sort_keys=True)
+
+            if not dnp3_object.out_json:
+                sys.stderr.write("invalid points specified in json configuration file.")
+                sys.exit(10)
+                
+            check_valid_points = False
+
+        oustation = obj
+        point_def = PointDefinitions()
+        point_def.load_points(dnp3_object.out_json)
+        processor = Processor(point_def, simulation_id, gapps)
+        dnp3_object.load_point_def(point_def)
+        outstation = start_outstation(oustation, processor)
+        #for outstation in outstation_list:
+        dnp3_object.load_outstation(outstation)
+>>>>>>> origin/Oese_new_branch
     # gapps.send(simulation_input_topic(opts.simulation_id), processor.process_point_value())
      
     try:
