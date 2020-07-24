@@ -373,7 +373,7 @@ class DNP3Mapping():
             # bank_phase = list(m['bankPhases'])
             for n in range(0, 4):
                 measurement_id = m.get("mRID")
-                name = m['bankname'] + '-' + m['bankPhases']
+                name = m['bankName'] + '-' + m['bankPhases']
                 description = "Name:" + m['bankName'] + ",ConductingEquipment_type:RatioTapChanger_Reg" +",Phase:" + m['bankPhases'] + ",Attribute:" + reg_attribute[n]
                 self.assign_val_d("AO", 42, 3, self.c_ao, name, description, measurement_id[0], reg_attribute[n])
                 self.c_ao += 1
