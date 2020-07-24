@@ -334,6 +334,27 @@ class DNP3Outstation(opendnp3.IOutstationApplication):
             if not os.environ.get('UNITTEST', False):
                 raise err
 
+    def apply_compiled_updates(self, updates):
+        """
+            Updates all records in the outstation's database with the atomic "updates" object.
+
+            The data value gets sent to the Master as a side-effect.
+
+        :param value: product of asiodnp3.UpdatBuilder.Build()
+        """
+        #_log.debug('Recording DNP3 {} measurement, name={}, index={}, value={}'.format(type(value).__name__, value, index, value.value))
+        
+        #max_index = cls.get_outstation_config().get('database_sizes', 10000)
+        #if index > max_index:
+        #    raise ValueError('Attempt to set a value for index {} which exceeds database size {}'.format(index,max_index)) 
+        try:
+            # print("Updating point values", self.port)
+            self.get_outstation().Apply(updates)
+        except AttributeError as err:
+            if not os.environ.get('UNITTEST', False):
+                raise err    
+            print("error applied_compiled_updates:",err)
+
     def shutdown(self):
         """
             Execute an orderly shutdown of the Outstation.
