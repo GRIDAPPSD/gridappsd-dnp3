@@ -198,9 +198,11 @@ class DNP3Mapping():
                              builder.Update(opendnp3.Binary(point.value), point.index)
 
             # Return the atomic "updates" object
+            print("Updates Created")
             return builder.Build()
         except Exception as e:
             message_str = "An error occurred while trying to translate the  message received" + str(e)
+
 
     def assign_val_a(self, data_type, group, variation, index, name, description, measurement_type, measurement_id):
         """ Method is to initialize  parameters to be used for generating  output  points for measurement key values """
@@ -371,7 +373,7 @@ class DNP3Mapping():
             # bank_phase = list(m['bankPhases'])
             for n in range(0, 4):
                 measurement_id = m.get("mRID")
-                name = m['bankName'] + '-' + m['bankPhases']
+                name = m['bankname'] + '-' + m['bankPhases']
                 description = "Name:" + m['bankName'] + ",ConductingEquipment_type:RatioTapChanger_Reg" +",Phase:" + m['bankPhases'] + ",Attribute:" + reg_attribute[n]
                 self.assign_val_d("AO", 42, 3, self.c_ao, name, description, measurement_id[0], reg_attribute[n])
                 self.c_ao += 1
