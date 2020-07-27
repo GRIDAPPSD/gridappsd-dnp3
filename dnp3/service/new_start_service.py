@@ -104,24 +104,30 @@ class Processor(object):
                 _log.debug("command_status={},command_value={}".format(command.status, command.value))
                 for point in self.outstation.get_agent().point_definitions.all_points():
                     # print(command.value, point.attribute)
-                    if point.name in str(point_value.point_def) and "RegulatingControl.Mode" in point.attribute :
+                    if point.name in str(point_value.point_def):
                         self._diff.clear()
                         self._diff.add_difference(point.measurement_id, point.attribute, command.value, 0) # value : received value
                         msg = self._diff.get_message()
                         self._gapps.send(self._publish_to_topic, json.dumps(msg))
                         print(json.dumps(msg))
-                    elif point.name in str(point_value.point_def) and "TapChanger.lineDropR" in point.attribute:
-                        self._diff.clear()
-                        self._diff.add_difference(point.measurement_id, point.attribute, command.value,0)
-                        msg = self._diff.get_message()
-                        self._gapps.send(self._publish_to_topic, json.dumps(msg))
-                        print(json.dumps(msg))
-                    elif point.name in str(point_value.point_def) and "Shunt" in point.attribute:
-                        self._diff.clear()
-                        self._diff.add_difference(point.measurement_id, point.attribute, command.value , 0)
-                        msg = self._diff.get_message()
-                        self._gapps.send(self._publish_to_topic, json.dumps(msg))
-                        print(json.dumps(msg))
+                    #if point.name in str(point_value.point_def) and "RegulatingControl.Mode" in point.attribute :
+                    #    self._diff.clear()
+                    #   self._diff.add_difference(point.measurement_id, point.attribute, command.value, 0) # value : received value
+                    #    msg = self._diff.get_message()
+                    #    self._gapps.send(self._publish_to_topic, json.dumps(msg))
+                    #    print(json.dumps(msg))
+                    #elif point.name in str(point_value.point_def) and "TapChanger.lineDropR" in point.attribute:
+                    #    self._diff.clear()
+                    #    self._diff.add_difference(point.measurement_id, point.attribute, command.value,0)
+                    #    msg = self._diff.get_message()
+                    #    self._gapps.send(self._publish_to_topic, json.dumps(msg))
+                    #    print(json.dumps(msg))
+                    #elif point.name in str(point_value.point_def) and "Shunt" in point.attribute:
+                    #    self._diff.clear()
+                    #    self._diff.add_difference(point.measurement_id, point.attribute, command.value , 0)
+                    #    msg = self._diff.get_message()
+                    #    self._gapps.send(self._publish_to_topic, json.dumps(msg))
+                    #    print(json.dumps(msg))
             if point_value is None:
                 return opendnp3.CommandStatus.DOWNSTREAM_FAIL
 
