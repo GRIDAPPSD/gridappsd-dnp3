@@ -336,7 +336,7 @@ if __name__ == '__main__':
         out_dict = dict({'points': dnp3_object.out_json})
         json.dump(out_dict, fp, indent=2, sort_keys=True)
 
-    with open("/tmp/port.json", 'r') as f:
+    with open("./dnp3/port.json", 'r') as f:
         port_config = json.load(f)
         print(port_config)
 

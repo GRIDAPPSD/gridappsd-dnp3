@@ -211,7 +211,7 @@ class DNP3Mapping():
 
         for m in regulators:
             reg_attribute = attribute_map['regulators']['attribute']
-            # bank_phase = list(m['bankPhases'])
+            #bank_phase = list(m['bankPhases'])
             for n in range(0, 4):
                 measurement_id = m.get("mRID")
                 name = uuid.uuid4().hex
@@ -219,10 +219,10 @@ class DNP3Mapping():
                 self.assign_val_d("AO", 42, 3, self.c_ao, name, description, measurement_id[0], reg_attribute[n])
                 self.c_ao += 1
             for i in range(5, 7):
-                for j in range(0, len(m['bankPhases'])):
+                for j in range(0, len(m['endPhase'])):
                     measurement_id = m.get("mRID")[j]
                     name = uuid.uuid4().hex
-                    description = "Name:" + m['tankName'][j] + ",ConductingEquipment_type:RatioTapChanger_Reg"+ ",Phase:" + m['bankPhases'][j] + ",controlAttribute:" + reg_attribute[i]
+                    description = "Name:" + m['tankName'][j] + ",ConductingEquipment_type:RatioTapChanger_Reg"+ ",Phase:" + m['endPhase'][j] + ",controlAttribute:" + reg_attribute[i]
                     self.assign_val_d("AO", 42, 3, self.c_ao, name, description, measurement_id,reg_attribute[i])
                     self.c_ao += 1
 
