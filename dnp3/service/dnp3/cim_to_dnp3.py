@@ -377,6 +377,8 @@ class DNP3Mapping():
                 description = "Name:" + m['bankName'] + ",ConductingEquipment_type:RatioTapChanger_Reg" +",Phase:" + m['bankPhases'] + ",Attribute:" + reg_attribute[n]
                 self.assign_val_d("AO", 42, 3, self.c_ao, name, description, measurement_id[0], reg_attribute[n])
                 self.c_ao += 1
+                self.assign_val_d("AI", 30, 1, self.c_ai, name, description, measurement_id[0], reg_attribute[n])
+                self.c_ai += 1
             for i in range(5, 7):
                 for j in range(0, len(m['bankPhases'])):
                     measurement_id = m.get("mRID")[j]
@@ -384,6 +386,8 @@ class DNP3Mapping():
                     description = "Name:" + m['tankName'][j] + ",ConductingEquipment_type:RatioTapChanger_Reg"+ ",Phase:" + m['bankPhases'][j] + ",controlAttribute:" + reg_attribute[i]
                     self.assign_val_d("AO", 42, 3, self.c_ao, name, description, measurement_id,reg_attribute[i])
                     self.c_ao += 1
+                    self.assign_val_d("AI", 30, 1, self.c_ai, name, description, measurement_id,reg_attribute[i])
+                    self.c_ai += 1
         
         for m in solarpanels:
             for k in range(0, len(m['phases'])):
