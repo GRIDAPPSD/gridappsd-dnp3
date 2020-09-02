@@ -62,13 +62,13 @@ class Processor(object):
                         if 'ON' in str(command.functionCode):
                             self._diff.clear()
                             self._diff.add_difference(point.measurement_id, point.attribute, 1, 0)
-                            msg = self.diff.get_message()
+                            msg = self._diff.get_message()
                             self._gapps.send(self._publish_to_topic, json.dumps(msg))
                             print(json.dumps(msg))
                         else:
                             self._diff.clear()
                             self._diff.add_difference(point.measurement_id, point.attribute, 0, 1)
-                            msg = self.diff.get_message()
+                            msg = self._diff.get_message()
                             self._gapps.send(self._publish_to_topic, json.dumps(msg))
                             print(json.dumps(msg))
                     if point.name in str(point_value.point_def) and point.attribute == 'Switch.open':
