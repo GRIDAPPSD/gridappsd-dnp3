@@ -294,7 +294,7 @@ class DNP3Mapping():
 
             if grpM[0]['MeasurementClass'] == "Analog" and grpM[0].get("measurementType") == "VA":
                 measurement_type = grpM[0].get("measurementType")
-                measurement_id = grpM[0].get("mRID") +","+ grpM[1].get("mRID") +","+ grpM[2].get("mRID")
+                measurement_id = m.get("mRID")
                 
 
                 name1 = grpM[0]['name'] + '-' + "Phases:ABC" +  '-net-VAR-value'
