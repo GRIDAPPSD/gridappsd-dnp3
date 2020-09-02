@@ -3,6 +3,8 @@ import logging
 import numbers
 import sys
 import json
+#import pydevd;pydevd.settrace(suspend=False) # Uncomment For Debugging on other Threads
+
 from time import sleep
 
 from yaml import safe_load
@@ -325,15 +327,15 @@ def publish_outstation_status(status_string):
 
 def on_message(simulation_id,message):
     print("Message received:", simulation_id['message-id'])
+    if(dnp3_object_list.__len__() > 0):
+        updates = dnp3_object_list[0].create_message_updates(simulation_id, message)
 
-    updates = dnp3_object_list[0].create_message_updates(simulation_id, message)
+        print("Outstation Updates Created")
 
-    print("Outstation Updates Created")
-
-    for cimMapping in dnp3_object_list:
-        cimMapping.outstation.apply_compiled_updates(updates)
-    
-    print("Done updating outstations")
+        for cimMapping in dnp3_object_list:
+            cimMapping.outstation.apply_compiled_updates(updates)
+        
+        print("Done updating outstations")
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()

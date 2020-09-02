@@ -5,7 +5,7 @@ import datetime
 import random
 import uuid
 import math
-# import pydevd;pydevd.settrace(suspend=False) # Uncomment For Debugging on other Threads
+#import pydevd;pydevd.settrace(suspend=False) # Uncomment For Debugging on other Threads
 
 from collections import defaultdict
 from pydnp3 import opendnp3, openpal, asiopal, asiodnp3
@@ -21,7 +21,7 @@ out_json = list()
 
 attribute_map = {
     "capacitors": {
-        "attribute": ["RegulatingControl.mode", "RegulatingControl.targetDeadband", "RegulatingControl.targetValue",
+        "attribute": ["RegulatingControl.enabled", "RegulatingControl.mode", "RegulatingControl.targetDeadband", "RegulatingControl.targetValue",
                       "ShuntCompensator.aVRDelay", "ShuntCompensator.sections"]}
     ,
     "switches": {
@@ -272,17 +272,19 @@ class DNP3Mapping():
         breakers = list()
         reclosers = list()
         energyconsumers = list()
+
+        # Added sorting on MRID to maintain Index Orders for dnp3 index generation between different containers 
         for x in feeders:
-            measurements = x.get("measurements", [])
-            capacitors = x.get("capacitors", [])
-            regulators = x.get("regulators", [])
-            switches = x.get("switches", [])
-            solarpanels = x.get("solarpanels", [])
-            batteries = x.get("batteries", [])
-            fuses = x.get("fuses", [])
-            breakers = x.get("breakers", [])
-            reclosers = x.get("reclosers", [])
-            energyconsumers = x.get("energyconsumers", [])
+            measurements = sorted(x.get("measurements", []), key=lambda x: x['mRID'], reverse=True)
+            capacitors = sorted(x.get("capacitors", []), key=lambda x: x['mRID'], reverse=True)
+            regulators = sorted(x.get("regulators", []), key=lambda x: x['mRID'], reverse=True)
+            switches = sorted(x.get("switches", []), key=lambda x: x['mRID'], reverse=True)
+            solarpanels = sorted(x.get("solarpanels", []), key=lambda x: x['mRID'], reverse=True)
+            batteries = sorted(x.get("batteries", []), key=lambda x: x['mRID'], reverse=True)
+            fuses = sorted(x.get("fuses", []), key=lambda x: x['mRID'], reverse=True)
+            breakers = sorted(x.get("breakers", []), key=lambda x: x['mRID'], reverse=True)
+            reclosers = sorted(x.get("reclosers", []), key=lambda x: x['mRID'], reverse=True)
+            energyconsumers = sorted(x.get("energyconsumers", []), key=lambda x: x['mRID'], reverse=True)
 
         # Unique grouping of measurements - GroupBy Name, Type and Connectivity node
         groupByNameTypeConNode = defaultdict(list) 
@@ -344,7 +346,7 @@ class DNP3Mapping():
             elif m['MeasurementClass'] == "Discrete" and  measurement_type == "Pos":
                 if "RatioTapChanger" in m['name'] or "reg" in m["SimObject"]:
                     # TODO: Do we need step?
-                    for r in range(5, 7): # [r==4]: Step, [r==5]: LineDropR, [r==6]:LineDropX 
+                    for r in range(4, 7): # [r==4]: Step, [r==5]: LineDropR, [r==6]:LineDropX 
                         self.assign_val_d("AO", 42, 3, self.c_ao, name, description,  measurement_id, attribute[r])
                         self.c_ao += 1
                 else:
@@ -355,18 +357,18 @@ class DNP3Mapping():
             measurement_id = m.get("mRID")
             cap_attribute = attribute_map['capacitors']['attribute']  # type: List[str]
 
-            for l in range(0, 4):
+            for l in range(0, 6):
                 # publishing attribute value for capacitors as Bianry/Analog Input points based on phase  attribute
                 name = m['name']
-                description = "Name:" + m['name'] + "ConductingEquipment_type:LinearShuntCompensator" + ",Attribute:" + cap_attribute[l]  + ",Phase:" + m['phases']
+                description = "Name:" + m['name'] + ",ConductingEquipment_type:LinearShuntCompensator" + ",Attribute:" + cap_attribute[l]  + ",Phase:" + m['phases']
                 self.assign_val_d("AO", 42, 3, self.c_ao, name, description, measurement_id, cap_attribute[l])
                 self.c_ao += 1
-            for p in range(0, len(m['phases'])):
-                name = m['name'] + m['phases'][p]
-                description = "Name:" + m['name'] + ",ConductingEquipment_type:LinearShuntCompensator" + ",controlAttribute:" + cap_attribute[p] + ",Phase:" + m['phases'][p]
-                # description = "Capacitor, " + m['name'] + "," + "phase -" + m['phases'][p] + ", and attribute is - " + cap_attribute[4]
-                self.assign_val_d("DO", 12, 1, self.c_do, name, description, measurement_id, cap_attribute[4])
-                self.c_do += 1
+                for p in range(0, len(m['phases'])):
+                    name = m['name'] + m['phases'][p]
+                    description = "Name:" + m['name'] + ",ConductingEquipment_type:LinearShuntCompensator" + ",controlAttribute:" + cap_attribute[l] + ",Phase:" + m['phases'][p]
+                    # description = "Capacitor, " + m['name'] + "," + "phase -" + m['phases'][p] + ", and attribute is - " + cap_attribute[l]
+                    self.assign_val_d("DO", 12, 1, self.c_do, name, description, measurement_id, cap_attribute[l])
+                    self.c_do += 1
 
         for m in regulators:
             reg_attribute = attribute_map['regulators']['attribute']
@@ -389,7 +391,7 @@ class DNP3Mapping():
             for k in range(0, len(m['phases'])):
                 measurement_id = m.get("mRID")
                 name = "Solar" + m['name'] + '-' + m['phases'][k] +  '-Watts-value'
-                description = "Solarpanel:" + m['name'] + ",Phase:" + m['phases'] + ",measurementID:" + measurement_id
+                description = "Type:Solarpanel, Name:" + m['name'] + ",Phase:" + m['phases'] + ",measurementID:" + measurement_id
                 self.assign_val_d("AO", 42, 3, self.c_ao, name, description, measurement_id, "PowerElectronicsConnection.p")
                 self.c_ao += 1
                 
@@ -409,7 +411,7 @@ class DNP3Mapping():
             for l in range(0, len(m['phases'])):
                 measurement_id = m.get("mRID")
                 name = m['name'] + '-' + m['phases'][l] +  '-Watts-value'
-                description = "Battery, " + m['name'][l] + ",Phase: " + m['phases'] + ",ConductingEquipment_type:PowerElectronicConnections"
+                description = "Type:Battery,Name:" + m['name']+ ",Phase:" + m['phases'][l] + ",ConductingEquipment_type:PowerElectronicConnections"
                 self.assign_val_d("AO", 42, 3, self.c_ao, name, description,measurement_id, "PowerElectronicsConnection.p")
                 self.c_ao += 1
                 name1 = m['name'] + '-' + m['phases'][l] +  '-VAR-value'
@@ -442,7 +444,7 @@ class DNP3Mapping():
             for n in range(0, len(m['phases'])):
                 phase_value = list(m['phases'])
                 name = m['name'] + "Phase:" + m['phases'][n]
-                description = "Name: " + m["name"] + ",Phase:" + phase_value[n] + ",ConductingEquipment_type:Breaker" + ",controlAttribute:" + switch_attribute
+                description = "Name:" + m["name"] + ",Phase:" + phase_value[n] + ",ConductingEquipment_type:Breaker" + ",controlAttribute:" + switch_attribute
                 self.assign_val_d("DO", 12, 1, self.c_do, name, description, measurement_id, switch_attribute)
                 self.c_do += 1
         
@@ -452,7 +454,7 @@ class DNP3Mapping():
             for i in range(0, len(m['phases'])):
                 phase_value = list(m['phases'])
                 name = m['name'] + "Phase:" + m['phases'][i]
-                description = "Recloser, " + m["name"] + "Phase: - " + phase_value[i] + ",ConductingEquipment_type:Recloser"+"controlAttribute:" + switch_attribute
+                description = "Name:" + m["name"] + ",Phase:" + phase_value[i] + ",ConductingEquipment_type:Recloser,"+"controlAttribute:" + switch_attribute
                 self.assign_val_d("DO", 12, 1, self.c_do, name, description, measurement_id, switch_attribute)
                 self.c_do += 1
 
@@ -461,7 +463,7 @@ class DNP3Mapping():
             for k in range(0, len(m['phases'])):
                 phase_value = list(m['phases'])
                 name = m['name']+"phase:" + m['phases'][k]
-                description = "EnergyConsumer, " + m["name"] + "Phase: " + phase_value[k] 
+                description = "Name:" + m['name'] + ",ConductingEquipment_type:EnergyConsumer,Phase:" + phase_value[k] 
                 self.assign_val_d("AO", 42, 3, self.c_ao, name, description, measurement_id, "EnergyConsumer.p")
                 self.c_ao += 1
                 
