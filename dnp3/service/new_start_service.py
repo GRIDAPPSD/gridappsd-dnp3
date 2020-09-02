@@ -60,17 +60,17 @@ class Processor(object):
             if 'Control' in str(command):
                 _log.debug("command_code={},command_code={},command_ontime={}".format(command.status, command.functionCode, command.onTimeMS))
                 for point in self.outstation.get_agent().point_definitions.all_points():
-                    if point.name in str(point_value.point_def) and point.attribute == 'ShuntCompensator.sections':
+                    if point.name in str(point_value.point_def)  and point.attribute == 'ShuntCompensator.sections':
                         if 'ON' in str(command.functionCode):
                             self._diff.clear()
                             self._diff.add_difference(point.measurement_id, point.attribute, 1, 0)
-                            msg = self.diff.get_message()
+                            msg = self._diff.get_message()
                             self._gapps.send(self._publish_to_topic, json.dumps(msg))
                             print(json.dumps(msg))
                         else:
                             self._diff.clear()
                             self._diff.add_difference(point.measurement_id, point.attribute, 0, 1)
-                            msg = self.diff.get_message()
+                            msg = self._diff.get_message()
                             self._gapps.send(self._publish_to_topic, json.dumps(msg))
                             print(json.dumps(msg))
                     if point.name in str(point_value.point_def) and point.attribute == 'Switch.open':
@@ -343,7 +343,7 @@ if __name__ == '__main__':
     opts = parser.parse_args()
     simulation_id = opts.simulation_id
     
-    with open("/tmp/port.json", 'r') as f:
+    with open("/gridappsd/services/gridappsd-dnp3/service/dnp3/port.json", 'r') as f:
         port_config = json.load(f)
     print(port_config)
 
