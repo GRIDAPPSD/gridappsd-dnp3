@@ -344,9 +344,9 @@ class DNP3Mapping():
             elif m['MeasurementClass'] == "Discrete" and  measurement_type == "Pos":
                 if "RatioTapChanger" in m['name'] or "reg" in m["SimObject"]:
                     # TODO: Do we need step?
-                    for r in range(5, 7): # [r==4]: Step, [r==5]: LineDropR, [r==6]:LineDropX 
-                        self.assign_val_d("AO", 42, 3, self.c_ao, name, description,  measurement_id, attribute[r])
-                        self.c_ao += 1
+                    for r in range(0, 7): # [r==4]: Step, [r==5]: LineDropR, [r==6]:LineDropX 
+                        self.assign_val_d("AI", 30, 1, self.c_ao, name, description,  measurement_id, attribute[r])
+                        self.c_ai += 1
                 else:
                     self.assign_val_a("DI", 1, 2, self.c_di, name, description, measurement_type, measurement_id)
                     self.c_di += 1
@@ -377,17 +377,17 @@ class DNP3Mapping():
                 description = "Name:" + m['bankName'] + ",ConductingEquipment_type:RatioTapChanger_Reg" +",Phase:" + m['bankPhases'] + ",Attribute:" + reg_attribute[n]
                 self.assign_val_d("AO", 42, 3, self.c_ao, name, description, measurement_id[0], reg_attribute[n])
                 self.c_ao += 1
-                self.assign_val_d("AI", 30, 1, self.c_ai, name, description, measurement_id[0], reg_attribute[n])
-                self.c_ai += 1
-            for i in range(5, 7):
+                #self.assign_val_d("AI", 30, 1, self.c_ai, name, description, measurement_id[0], reg_attribute[n])
+                #self.c_ai += 1
+            for i in range(4, 7):
                 for j in range(0, len(m['bankPhases'])):
                     measurement_id = m.get("mRID")[j]
                     name = m['tankName'][j] + '-' + m['bankPhases'][j]
                     description = "Name:" + m['tankName'][j] + ",ConductingEquipment_type:RatioTapChanger_Reg"+ ",Phase:" + m['bankPhases'][j] + ",controlAttribute:" + reg_attribute[i]
                     self.assign_val_d("AO", 42, 3, self.c_ao, name, description, measurement_id,reg_attribute[i])
                     self.c_ao += 1
-                    self.assign_val_d("AI", 30, 1, self.c_ai, name, description, measurement_id,reg_attribute[i])
-                    self.c_ai += 1
+                    #self.assign_val_d("AI", 30, 1, self.c_ai, name, description, measurement_id,reg_attribute[i])
+                    #self.c_ai += 1
         
         for m in solarpanels:
             for k in range(0, len(m['phases'])):
