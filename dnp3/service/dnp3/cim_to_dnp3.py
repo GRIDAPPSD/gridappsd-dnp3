@@ -93,18 +93,18 @@ class DNP3Mapping():
                            angle = math.radians(m.get("angle"))
                            point.magnitude = math.sin(angle) * m.get("magnitude")
                            self.outstation.apply_update(opendnp3.Analog(point.magnitude), point.index)
-                       
+
                        elif point.measurement_type == "VA" and "Watts"  in point.name:
                            angle1 = math.radians(m.get("angle"))
                            point.magnitude = math.cos(angle1) * m.get("magnitude")
                            self.outstation.apply_update(opendnp3.Analog(point.magnitude), point.index)
-                       
+
                        elif point.measurement_type == "VA" and "angle"  in point.name:
                            angle2 = math.radians(m.get("angle"))
                            #point.magnitude = math.cos(angle1) * m.get("magnitude")
                            self.outstation.apply_update(opendnp3.Analog(angle2), point.index)
-                           
-                       
+
+
                 elif "value" in m.keys():
                     for point in self.outstation.get_agent().point_definitions.all_points():
                         if m.get("measurement_mrid") == point.measurement_id and point.value != m.get("value"):
@@ -142,11 +142,11 @@ class DNP3Mapping():
 
                 myPoints = self.outstation.get_agent().point_definitions.all_points()
                 netPoints = list(filter(lambda x: "net-" in x.description, myPoints))
-                
+
                 for point in netPoints:
                     ptMeasurements = list(filter(lambda m: m.get("measurement_mrid") in point.measurement_id, measurement_values.values()))
                     netValue = 0.0
-                    
+
                     for m in ptMeasurements:
                         if "VAR" in point.name:
                             angle = math.radians(m.get("angle"))
@@ -254,7 +254,7 @@ class DNP3Mapping():
 
     def load_point_def(self, point_def):
         self.processor_point_def = point_def
-        
+
     def load_outstation(self, outstation):
         self.outstation = outstation
 
@@ -285,7 +285,7 @@ class DNP3Mapping():
             energyconsumers = x.get("energyconsumers", [])
 
         # Unique grouping of measurements - GroupBy Name, Type and Connectivity node
-        groupByNameTypeConNode = defaultdict(list) 
+        groupByNameTypeConNode = defaultdict(list)
         for m in measurements:
             groupByNameTypeConNode[m['name']+m.get("measurementType")+m.get("ConnectivityNode")].append(m)
 
@@ -295,7 +295,7 @@ class DNP3Mapping():
             if grpM[0]['MeasurementClass'] == "Analog" and grpM[0].get("measurementType") == "VA":
                 measurement_type = grpM[0].get("measurementType")
                 measurement_id = m.get("mRID")
-                
+
 
                 name1 = grpM[0]['name'] + '-' + "Phases:ABC" +  '-net-VAR-value'
                 name2 = grpM[0]['name'] + '-' + "Phases:ABC" +  '-net-Watts-value'
@@ -344,7 +344,7 @@ class DNP3Mapping():
             elif m['MeasurementClass'] == "Discrete" and  measurement_type == "Pos":
                 if "RatioTapChanger" in m['name'] or "reg" in m["SimObject"]:
                     # TODO: Do we need step?
-                    for r in range(5, 7): # [r==4]: Step, [r==5]: LineDropR, [r==6]:LineDropX 
+                    for r in range(5, 7): # [r==4]: Step, [r==5]: LineDropR, [r==6]:LineDropX
                         self.assign_val_d("AO", 42, 3, self.c_ao, name, description,  measurement_id, attribute[r])
                         self.c_ao += 1
                 else:
@@ -388,7 +388,7 @@ class DNP3Mapping():
                     self.c_ao += 1
                     self.assign_val_d("AI", 30, 1, self.c_ai, name, description, measurement_id,reg_attribute[i])
                     self.c_ai += 1
-        
+
         for m in solarpanels:
             for k in range(0, len(m['phases'])):
                 measurement_id = m.get("mRID")
@@ -396,19 +396,19 @@ class DNP3Mapping():
                 description = "Solarpanel:" + m['name'] + ",Phase:" + m['phases'] + ",measurementID:" + measurement_id
                 self.assign_val_d("AO", 42, 3, self.c_ao, name, description, measurement_id, "PowerElectronicsConnection.p")
                 self.c_ao += 1
-                
+
                 name1 = "Solar" + m['name'] + '-' + m['phases'][k] +  '-VAR-value'
                 self.assign_val_d("AO", 42, 3, self.c_ao, name1, description, measurement_id, "PowerElectronicsConnection.q")
                 self.c_ao += 1
-                
+
                 name2 = "Solar" + m['name'] + '-' + m['phases'][k] +  '-VAR-Net-value'
                 self.assign_val_d("AO", 42, 3, self.c_ao, name2, description, measurement_id, "PowerElectronicsConnection.q")
                 self.c_ao += 1
-                
+
                 name3 = "Solar"+ m['name'] + '-' + m['phases'][k] +  '-Watts-Net-value'
                 self.assign_val_d("AO", 42, 3, self.c_ao, name3, description, measurement_id, "PowerElectronicsConnection.p")
                 self.c_ao += 1
-			
+
         for m in batteries:
             for l in range(0, len(m['phases'])):
                 measurement_id = m.get("mRID")
@@ -419,7 +419,7 @@ class DNP3Mapping():
                 name1 = m['name'] + '-' + m['phases'][l] +  '-VAR-value'
                 self.assign_val_d("AO", 42, 3, self.c_ao, name1, description,measurement_id, "PowerElectronicsConnection.q")
                 self.c_ao += 1
-            
+
         for m in switches:
             measurement_id = m.get("mRID")
             switch_attribute = attribute_map['switches']['attribute']
@@ -449,7 +449,7 @@ class DNP3Mapping():
                 description = "Name: " + m["name"] + ",Phase:" + phase_value[n] + ",ConductingEquipment_type:Breaker" + ",controlAttribute:" + switch_attribute
                 self.assign_val_d("DO", 12, 1, self.c_do, name, description, measurement_id, switch_attribute)
                 self.c_do += 1
-        
+
         for m in reclosers:
             measurement_id = m.get("mRID")
             switch_attribute = attribute_map['switches']['attribute']
@@ -465,13 +465,12 @@ class DNP3Mapping():
             for k in range(0, len(m['phases'])):
                 phase_value = list(m['phases'])
                 name = m['name']+"phase:" + m['phases'][k]
-                description = "EnergyConsumer, " + m["name"] + "Phase: " + phase_value[k] 
+                description = "EnergyConsumer, " + m["name"] + "Phase: " + phase_value[k]
                 self.assign_val_d("AO", 42, 3, self.c_ao, name, description, measurement_id, "EnergyConsumer.p")
                 self.c_ao += 1
-                
+
                 name1 = m['name']+"phase:" + m['phases'][k] + "control"
                 self.assign_val_d("DO", 12, 1, self.c_do, name1, description, measurement_id, "EnergyConsumer.p")
                 self.c_do += 1
 
         return self.out_json
-
