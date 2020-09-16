@@ -286,7 +286,7 @@ def start_outstation(outstation_config, processor):
     dnp3_outstation.start()
     processor.outstation = dnp3_outstation
     _log.debug('DNP3 initialization complete. In command loop.')
-    
+
     # Ad-hoc tests can be performed at this point if desired.
     return dnp3_outstation
 
@@ -332,7 +332,7 @@ def on_message(simulation_id,message):
 
     for cimMapping in dnp3_object_list:
         cimMapping.outstation.apply_compiled_updates(updates)
-    
+
     #print("Done updating outstations")
 
 if __name__ == '__main__':
@@ -340,7 +340,7 @@ if __name__ == '__main__':
     parser.add_argument('simulation_id', help="Simulation id")
     opts = parser.parse_args()
     simulation_id = opts.simulation_id
-    
+
     with open("/gridappsd/services/gridappsd-dnp3/service/dnp3/port.json", 'r') as f:
         port_config = json.load(f)
     print(port_config)
@@ -348,21 +348,21 @@ if __name__ == '__main__':
     filepath = "/tmp/gridappsd_tmp/{}/model_dict.json".format(simulation_id)
     with open(filepath, 'r') as fp:
         cim_dict = json.load(fp)
-        
-    
+
+
     gapps = GridAPPSD(opts.simulation_id, address=utils.get_gridappsd_address(),
                       username=utils.get_gridappsd_user(), password=utils.get_gridappsd_pass())
-    
+
     gapps.subscribe(simulation_output_topic(opts.simulation_id), on_message)
 
-    
+
     dnp3_object_list = []
     check_valid_points = True
-    
-    for obj in port_config: 
+
+    for obj in port_config:
         dnp3_object = DNP3Mapping(cim_dict)
         dnp3_object._create_dnp3_object_map()
-        
+
         if check_valid_points:
             with open("/tmp/json_out", 'w') as fp:
                 out_dict = dict({'points': dnp3_object.out_json})
@@ -382,7 +382,7 @@ if __name__ == '__main__':
         dnp3_object.load_outstation(outstation)
         dnp3_object_list.append(dnp3_object)
     # gapps.send(simulation_input_topic(opts.simulation_id), processor.process_point_value())
-     
+
     try:
         while True:
             sleep(0.01)
