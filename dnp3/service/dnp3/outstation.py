@@ -107,9 +107,9 @@ class DNP3Outstation(opendnp3.IOutstationApplication):
 
         #with open("/tmp/port.json", 'r') as f:
         #    self.port_config = json.load(f)
-        #    for m in self.port_config: 
+        #    for m in self.port_config:
         #        self.port = m['port']
-    
+
     def start(self):
         _log.debug('Configuring the DNP3 stack.')
         _log.debug(str(self.outstation_config))
@@ -171,8 +171,8 @@ class DNP3Outstation(opendnp3.IOutstationApplication):
                                                  self.local_ip,
                                                  int(self.port),
                                                  self.listener)
-         
-        
+
+
         #_log.debug(str(self.channel))
         _log.debug('Adding the DNP3 Outstation to the channel.')
         # self.command_handler =  opendnp3.SuccessCommandHandler().Create() # (or use this during regression testing)
@@ -319,11 +319,11 @@ class DNP3Outstation(opendnp3.IOutstationApplication):
         :param index: (integer) Index of the data definition in the opendnp3 database.
         """
         #_log.debug('Recording DNP3 {} measurement, name={}, index={}, value={}'.format(type(value).__name__, value, index, value.value))
-        
+
         #max_index = cls.get_outstation_config().get('database_sizes', 10000)
         #if index > max_index:
-        #    raise ValueError('Attempt to set a value for index {} which exceeds database size {}'.format(index,max_index)) 
-       
+        #    raise ValueError('Attempt to set a value for index {} which exceeds database size {}'.format(index,max_index))
+
         builder = asiodnp3.UpdateBuilder()
         builder.Update(value, index)
         update = builder.Build()
@@ -343,16 +343,17 @@ class DNP3Outstation(opendnp3.IOutstationApplication):
         :param value: product of asiodnp3.UpdatBuilder.Build()
         """
         #_log.debug('Recording DNP3 {} measurement, name={}, index={}, value={}'.format(type(value).__name__, value, index, value.value))
-        
+
         #max_index = cls.get_outstation_config().get('database_sizes', 10000)
         #if index > max_index:
-        #    raise ValueError('Attempt to set a value for index {} which exceeds database size {}'.format(index,max_index)) 
+        #    raise ValueError('Attempt to set a value for index {} which exceeds database size {}'.format(index,max_index))
         try:
-            # print("Updating point values", self.port)
+            print("Updating point values", type(self.port))
+            print("Alka", updates)
             self.get_outstation().Apply(updates)
         except AttributeError as err:
             if not os.environ.get('UNITTEST', False):
-                raise err    
+                raise err
             print("error applied_compiled_updates:",err)
 
     def shutdown(self):
@@ -420,7 +421,7 @@ class AppChannelListener(asiodnp3.IChannelListener):
     """
 
     def __init__(self,dnp3Object):
-        
+
         super(AppChannelListener, self).__init__()
         self.dnp3Object = dnp3Object
 
