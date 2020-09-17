@@ -136,6 +136,7 @@ class DNP3Mapping():
 
             # fncs_input_message = {"{}".format(simulation_id): {}}
             measurement_values = json_msg["message"]["measurements"]
+            #print(measurement_values)
 
             # Calculate each net-phase measurement
             if(measurement_values):
@@ -145,6 +146,7 @@ class DNP3Mapping():
                 
                 for point in netPoints:
                     ptMeasurements = list(filter(lambda m: m.get("measurement_mrid") in point.measurement_id, measurement_values.values()))
+                    #print(type(measurement_values.values()))
                     netValue = 0.0
                     
                     for m in ptMeasurements:
@@ -161,7 +163,7 @@ class DNP3Mapping():
 
                     point.magnitude = netValue
                     builder.Update(opendnp3.Analog(point.magnitude), point.index)
-
+                    #print("==========", point.magnitude, point.index)
             # Calculate each measurement
             for y in measurement_values:
                 # print(self.processor_point_def.points_by_mrid())
@@ -196,6 +198,7 @@ class DNP3Mapping():
                         if m.get("measurement_mrid") == point.measurement_id and point.value != m.get("value"):
                              point.value = m.get("value")
                              builder.Update(opendnp3.Binary(point.value), point.index)
+                             print("==========", point.value, point.index, point.measurement_id)
 
             # Return the atomic "updates" object
             print("Updates Created")
@@ -294,23 +297,26 @@ class DNP3Mapping():
 
             if grpM[0]['MeasurementClass'] == "Analog" and grpM[0].get("measurementType") == "VA":
                 measurement_type = grpM[0].get("measurementType")
-                measurement_id = m.get("mRID")
-                
+                measurement_id = ""
+                for m in grpM:
+                    
+                    measurement_id += m.get("mRID") + ","
+                    #measurement_id = grpM[0].get("mRID") + "," + grpM[1].get("mRID")+ "," + grpM[2].get("mRID")
 
-                name1 = grpM[0]['name'] + '-' + "Phases:ABC" +  '-net-VAR-value'
-                name2 = grpM[0]['name'] + '-' + "Phases:ABC" +  '-net-Watts-value'
-                name3 = grpM[0]['name'] + '-' + "Phases:ABC" +  '-net-VA-value'
+                    name1 = grpM[0]['name'] + '-' + "Phases:ABC" +  '-net-VAR-value'
+                    name2 = grpM[0]['name'] + '-' + "Phases:ABC" +  '-net-Watts-value'
+                    name3 = grpM[0]['name'] + '-' + "Phases:ABC" +  '-net-VA-value'
 
-                description1 = "Name:" + grpM[0]['name'] + ",MeasurementType:" + "net-VAR" + ",ConnectivityNode:" + grpM[0].get("ConnectivityNode") +",SimObject:" + grpM[0].get("SimObject")
-                description2 = "Name:" + grpM[0]['name'] + ",MeasurementType:" + "net-Watts" + ",ConnectivityNode:" + grpM[0].get("ConnectivityNode") +",SimObject:" + grpM[0].get("SimObject")
-                description3 = "Name:" + grpM[0]['name'] + ",MeasurementType:" + "net-VA" + ",ConnectivityNode:" + grpM[0].get("ConnectivityNode") +",SimObject:" + grpM[0].get("SimObject")
+                    description1 = "Name:" + grpM[0]['name'] + ",MeasurementType:" + "net-VAR" + ",ConnectivityNode:" + grpM[0].get("ConnectivityNode") +",SimObject:" + grpM[0].get("SimObject")
+                    description2 = "Name:" + grpM[0]['name'] + ",MeasurementType:" + "net-Watts" + ",ConnectivityNode:" + grpM[0].get("ConnectivityNode") +",SimObject:" + grpM[0].get("SimObject")
+                    description3 = "Name:" + grpM[0]['name'] + ",MeasurementType:" + "net-VA" + ",ConnectivityNode:" + grpM[0].get("ConnectivityNode") +",SimObject:" + grpM[0].get("SimObject")
 
-                self.assign_val_a("AI", 30, 1, self.c_ai, name1, description1, measurement_type, measurement_id)
-                self.c_ai += 1
-                self.assign_val_a("AI", 30, 1, self.c_ai, name2, description2, measurement_type, measurement_id)
-                self.c_ai += 1
-                self.assign_val_a("AI", 30, 1, self.c_ai, name3, description3, measurement_type, measurement_id)
-                self.c_ai += 1
+                    self.assign_val_a("AI", 30, 1, self.c_ai, name1, description1, measurement_type, measurement_id)
+                    self.c_ai += 1
+                    self.assign_val_a("AI", 30, 1, self.c_ai, name2, description2, measurement_type, measurement_id)
+                    self.c_ai += 1
+                    self.assign_val_a("AI", 30, 1, self.c_ai, name3, description3, measurement_type, measurement_id)
+                    self.c_ai += 1
 
         # Create Each Phase DNP3 Points
         for m in measurements:
@@ -344,9 +350,9 @@ class DNP3Mapping():
             elif m['MeasurementClass'] == "Discrete" and  measurement_type == "Pos":
                 if "RatioTapChanger" in m['name'] or "reg" in m["SimObject"]:
                     # TODO: Do we need step?
-                    for r in range(0, 7): # [r==4]: Step, [r==5]: LineDropR, [r==6]:LineDropX 
-                        self.assign_val_d("AI", 30, 1, self.c_ao, name, description,  measurement_id, attribute[r])
-                        self.c_ai += 1
+                    for r in range(5, 7): # [r==4]: Step, [r==5]: LineDropR, [r==6]:LineDropX 
+                        self.assign_val_d("AO", 42, 3, self.c_ao, name, description,  measurement_id, attribute[r])
+                        self.c_ao += 1
                 else:
                     self.assign_val_a("DI", 1, 2, self.c_di, name, description, measurement_type, measurement_id)
                     self.c_di += 1
@@ -377,17 +383,17 @@ class DNP3Mapping():
                 description = "Name:" + m['bankName'] + ",ConductingEquipment_type:RatioTapChanger_Reg" +",Phase:" + m['bankPhases'] + ",Attribute:" + reg_attribute[n]
                 self.assign_val_d("AO", 42, 3, self.c_ao, name, description, measurement_id[0], reg_attribute[n])
                 self.c_ao += 1
-                #self.assign_val_d("AI", 30, 1, self.c_ai, name, description, measurement_id[0], reg_attribute[n])
-                #self.c_ai += 1
-            for i in range(4, 7):
+                self.assign_val_d("AI", 30, 1, self.c_ai, name, description, measurement_id[0], reg_attribute[n])
+                self.c_ai += 1
+            for i in range(5, 7):
                 for j in range(0, len(m['bankPhases'])):
                     measurement_id = m.get("mRID")[j]
                     name = m['tankName'][j] + '-' + m['bankPhases'][j]
                     description = "Name:" + m['tankName'][j] + ",ConductingEquipment_type:RatioTapChanger_Reg"+ ",Phase:" + m['bankPhases'][j] + ",controlAttribute:" + reg_attribute[i]
                     self.assign_val_d("AO", 42, 3, self.c_ao, name, description, measurement_id,reg_attribute[i])
                     self.c_ao += 1
-                    #self.assign_val_d("AI", 30, 1, self.c_ai, name, description, measurement_id,reg_attribute[i])
-                    #self.c_ai += 1
+                    self.assign_val_d("AI", 30, 1, self.c_ai, name, description, measurement_id,reg_attribute[i])
+                    self.c_ai += 1
         
         for m in solarpanels:
             for k in range(0, len(m['phases'])):
