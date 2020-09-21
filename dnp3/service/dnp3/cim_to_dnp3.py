@@ -12,9 +12,11 @@ from dnp3.points import (
     PointArray, PointDefinitions, PointDefinition, DNP3Exception, POINT_TYPE_ANALOG_INPUT, POINT_TYPE_BINARY_INPUT
 )
 
+from dnp3.master import command_callback, restart_callback
+
 out_json = list()
 
-'''Dictionary for mapping the attribute values of control poitns for Capacitor, Regulator and Switches'''
+'''Dictionary for mapping the attribute values of control pointd for Capacitor, Regulator and Switches, Mesurements'''
 
 attribute_map = {
     "capacitors": {
@@ -29,11 +31,14 @@ attribute_map = {
     "regulators": {
         "attribute": ["RegulatingControl.targetDeadband", "RegulatingControl.targetValue", "TapChanger.initialDelay",
                       "TapChanger.lineDropCompensation", "TapChanger.step", "TapChanger.lineDropR",
-                      "TapChanger.lineDropX"]}
+                      "TapChanger.lineDropX"]},
+
+    "measurements": {
+        "attribute": ["measurement_mrid", "type", "magnitude", "angle", "value"]}
+        # ["Discrete", "Analog" ,"Measurement.PowerSystemResource", "Measurement.Terminal",
+        #  "Measurement.phases","Measurement.measurementType"]  ## TODO check against points file
 
 }
-
-
 class DNP3Mapping():
     """ This creates dnp3 input and output points for incoming CIM messages  and model dictionary file respectively."""
 
@@ -47,9 +52,10 @@ class DNP3Mapping():
         self.file_dict = map_file
         self.processor_point_def = PointDefinitions()
         self.outstation = DNP3Outstation('',0,'')
+        self.master = None
 
 
-    def on_message(self, simulation_id,message):
+    def on_message(self, simulation_id, message):
         """ This method handles incoming messages on the fncs_output_topic for the simulation_id.
         Parameters
         ----------
@@ -62,8 +68,15 @@ class DNP3Mapping():
 
         try:
             message_str = 'received message ' + str(message)
-
+            print(message_str)
             json_msg = yaml.safe_load(str(message))
+            # self.master.apply_update(opendnp3.Binary(0), 12)
+
+            self.master.send_direct_operate_command(
+                opendnp3.ControlRelayOutputBlock(opendnp3.ControlCode.LATCH_ON),
+                5,
+                command_callback)
+
 
             if type(json_msg) != dict:
                 raise ValueError(
@@ -71,7 +84,28 @@ class DNP3Mapping():
                     + '\njson_msg = {0}'.format(json_msg))
 
             # fncs_input_message = {"{}".format(simulation_id): {}}
-            measurement_values = json_msg["message"]["measurements"]
+            # measurement_values = json_msg["message"]["measurements"]
+            measurement_values = []
+
+            print(json_msg)
+            # received message {'command': 'update', 'input': {'simulation_id': '1764973334', 'message': {'timestamp': 1597447649, 'difference_mrid': '5ba5daf7-bf8b-4458-bc23-40ea3fb8078f', 'reverse_differences': [{'object': '_A9DE8829-58CB-4750-B2A2-672846A89753', 'attribute': 'ShuntCompensator.sections', 'value': 1}, {'object': '_9D725810-BFD6-44C6-961A-2BC027F6FC95', 'attribute': 'ShuntCompensator.sections', 'value': 1}], 'forward_differences': [{'object': '_A9DE8829-58CB-4750-B2A2-672846A89753', 'attribute': 'ShuntCompensator.sections', 'value': 0}, {'object': '_9D725810-BFD6-44C6-961A-2BC027F6FC95', 'attribute': 'ShuntCompensator.sections', 'value': 0}]}}}
+            control_values = json_msg["input"]["message"]["forward_differences"]
+            print(control_values)
+            # exit(0)
+
+            ## TODO get command
+            for command in control_values:
+                print("command", command)
+                print(self.master)
+                for point in self.master.get_agent().point_definitions.all_points():
+                    # print("point",point)
+                    # print("y",y)
+                    if command.get("object") == point.measurement_id and point.value != command.get("value"):
+                        print("point", point)
+                        point.magnitude = command.get("value")
+                        print(opendnp3.Binary(point.value), point.index)
+                        self.master.apply_update(opendnp3.Binary(point.value), point.index)
+
 
             # storing the magnitude and measurement_mRID values to publish in the dnp3 points for measurement key values
             for y in measurement_values:
@@ -145,6 +179,9 @@ class DNP3Mapping():
         
     def load_outstation(self, outstation):
         self.outstation = outstation
+
+    def load_master(self, master):
+        self.master = master
 
     def _create_dnp3_object_map(self):
         """This method creates the points by taking the input data from model dictionary file"""

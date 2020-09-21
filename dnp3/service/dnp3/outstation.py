@@ -93,6 +93,7 @@ class DNP3Outstation(opendnp3.IOutstationApplication):
         super(DNP3Outstation, self).__init__()
         self.local_ip = local_ip
         self.port = port
+        print("JEFF port", port)
         #print(local_ip),
         self.set_outstation_config(outstation_config)
         # The following variables are initialized after start() is called.
@@ -236,6 +237,7 @@ class DNP3Outstation(opendnp3.IOutstationApplication):
             use a union of those names to construct the integer. Otherwise return the default log level.
         """
         log_level_list = self.outstation_config.get('log_levels', ['NORMAL'])
+        log_level_list = []
         # log_level_list should be a list of strings. If it's not (e.g., if it's a simple string), fail.
         if not isinstance(log_level_list, list):
             raise TypeError('log_levels should be configured as a list of strings, not as {}'.format(log_level_list))
@@ -248,11 +250,11 @@ class DNP3Outstation(opendnp3.IOutstationApplication):
             'NORMAL': opendnp3.levels.NORMAL,
             'NOTHING': opendnp3.levels.NOTHING
         }
-        log_level = 0
+        log_level = 6
         for name in log_level_list:
             log_level = log_level | name_to_bitmasks.get(name, 0)
 
-        _log.debug('Setting DNP3 log level={} ({})'.format(log_level, log_level_list))
+        _log.debug('Setting DNP3 JEFF log level={} ({})'.format(log_level, log_level_list))
         return log_level
 
     # Overridden method
@@ -309,7 +311,7 @@ class DNP3Outstation(opendnp3.IOutstationApplication):
         :param value: An instance of Analog, Binary, or another opendnp3 data value.
         :param index: (integer) Index of the data definition in the opendnp3 database.
         """
-        #_log.debug('Recording DNP3 {} measurement, index={}, value={}'.format(type(value).__name__, index, value.value))
+        _log.debug('Recording DNP3 {} measurement, index={}, value={}'.format(type(value).__name__, index, value.value))
         max_index = cls.get_outstation_config().get('database_sizes', 10000)
         if index > max_index:
             raise ValueError('Attempt to set a value for index {} which exceeds database size {}'.format(index,

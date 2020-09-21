@@ -16,6 +16,10 @@ from dnp3.points import (
 )
 from dnp3.outstation import DNP3Outstation
 
+from pydnp3 import opendnp3, openpal
+from dnp3.master import MyMaster, MyLogger, AppChannelListener, SOEHandler, MasterApplication
+from dnp3.master import command_callback, restart_callback
+
 logging.basicConfig(stream=sys.stdout, level=logging.DEBUG,
                     format='%(asctime)s:%(name)s:%(levelname)s: %(message)s')
 
@@ -34,6 +38,7 @@ class Processor(object):
         # self._close_diff = DifferenceBuilder(simulation_id)
         self._publish_to_topic = simulation_input_topic(simulation_id)
         self.processor_point_def = PointDefinitions()
+        print("Jeff")
         self.outstation = DNP3Outstation('', 0, '')
 
     def publish_outstation_status(self, status):
@@ -322,11 +327,12 @@ def publish_outstation_status(status_string):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('simulation_id', help="Simulation id")
+    parser.add_argument('simulation_id', help="Simulation id",nargs='*', default=1)
     opts = parser.parse_args()
-    simulation_id = opts.simulation_id
+    simulation_id = opts.simulation_id[0]
 
     filepath = "/tmp/gridappsd_tmp/{}/model_dict.json".format(simulation_id)
+    filepath = "../model_dict.json".format(simulation_id)
     with open(filepath, 'r') as fp:
         cim_dict = json.load(fp)
     dnp3_object = DNP3Mapping(cim_dict)
@@ -336,7 +342,8 @@ if __name__ == '__main__':
         out_dict = dict({'points': dnp3_object.out_json})
         json.dump(out_dict, fp, indent=2, sort_keys=True)
 
-    with open("/tmp/port.json", 'r') as f:
+    # with open("/tmp/port.json", 'r') as f:
+    with open("./dnp3/port.json", 'r') as f:
         port_config = json.load(f)
         print(port_config)
 
@@ -346,7 +353,11 @@ if __name__ == '__main__':
 
     gapps = GridAPPSD(opts.simulation_id, address=utils.get_gridappsd_address(),
                       username=utils.get_gridappsd_user(), password=utils.get_gridappsd_pass())
-    gapps.subscribe(simulation_output_topic(opts.simulation_id),dnp3_object.on_message)
+
+    print("subscribe " + simulation_input_topic(simulation_id))
+    # gapps.subscribe(simulation_input_topic(simulation_id), dnp3_object.on_message)
+    # gapps.subscribe('/topic/goss.gridappsd.simulation.input.'+str(simulation_id), dnp3_object.on_message)
+    gapps.subscribe('/topic/goss.gridappsd.simulation.output.'+str(simulation_id), dnp3_object.on_message)
 
 
     oustation = dict()
@@ -354,13 +365,21 @@ if __name__ == '__main__':
     point_def.load_points(dnp3_object.out_json)
     processor = Processor(point_def, simulation_id, gapps)
     dnp3_object.load_point_def(point_def)
-    outstation_list = start_outstation(oustation, processor)
-    for outstation in outstation_list:
-        dnp3_object.load_outstation(outstation)
-    # gapps.send(simulation_input_topic(opts.simulation_id), processor.process_point_value())
-     
+    # outstation_list = start_outstation(oustation, processor)
+    # for outstation in outstation_list:
+    #     dnp3_object.load_outstation(outstation)
+    # # gapps.send(simulation_input_topic(simulation_id), processor.process_point_value())
+    app = MyMaster(log_handler=MyLogger(),
+                   listener=AppChannelListener(),
+                   soe_handler=SOEHandler(),
+                   master_application=MasterApplication())
+    app.set_agent(processor)
+    dnp3_object.load_master(app)
+    # gapps.send(simulation_output_topic(simulation_id), processor.process_point_value())
     try:
         while True:
             sleep(0.01)
     finally:
-        outstation.shutdown()
+        # outstation.shutdown()
+        app.shutdown()
+        pass
