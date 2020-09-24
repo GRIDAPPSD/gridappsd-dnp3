@@ -3,3 +3,5 @@
 docs/build
 env/
 *.swp
+__pycache__/
+*.py[cod]

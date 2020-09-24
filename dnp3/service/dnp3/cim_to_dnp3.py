@@ -1,3 +1,6 @@
+import sys
+sys.path.append(".")
+
 import json
 import yaml
 import sys
@@ -6,6 +9,7 @@ import random
 import uuid
 import math
 #import pydevd;pydevd.settrace(suspend=False) # Uncomment For Debugging on other Threads
+from .oestester import OesTester
 
 from collections import defaultdict
 from pydnp3 import opendnp3, openpal, asiopal, asiodnp3
@@ -52,67 +56,6 @@ class DNP3Mapping():
         self.processor_point_def = PointDefinitions()
         self.outstation = DNP3Outstation('',0,'')
 
-    # This is the old on_message. Should probably be removed, unless the "start_service.py" needs it. Leaving this up to PNNL to decide :)
-    def on_message(self, simulation_id,message):
-        """ This method handles incoming messages on the fncs_output_topic for the simulation_id.
-        Parameters
-        ----------
-        headers: dict
-            A dictionary of headers that could be used to determine topic of origin and
-            other attributes.
-        message: object
-
-        """
-
-        try:
-            message_str = 'received message ' + str(message)
-
-            json_msg = yaml.safe_load(str(message))
-
-            if type(json_msg) != dict:
-                raise ValueError(
-                    ' is not a json formatted string.'
-                    + '\njson_msg = {0}'.format(json_msg))
-
-            # fncs_input_message = {"{}".format(simulation_id): {}}
-            measurement_values = json_msg["message"]["measurements"]
-
-            # storing the magnitude and measurement_mRID values to publish in the dnp3 points for measurement key values
-            for y in measurement_values:
-                # print(self.processor_point_def.points_by_mrid())
-                m = measurement_values[y]
-                if "magnitude" in m.keys():
-                   for point in self.outstation.get_agent().point_definitions.all_points():
-                       #print("point",point)
-                       #print("y",y)
-                       if m.get("measurement_mrid") == point.measurement_id and point.magnitude != m.get("magnitude"):
-                           point.magnitude = m.get("magnitude")
-                           self.outstation.apply_update(opendnp3.Analog(point.magnitude), point.index)
-
-                       elif point.measurement_type == "VA" and "VAR" in point.name:
-                           angle = math.radians(m.get("angle"))
-                           point.magnitude = math.sin(angle) * m.get("magnitude")
-                           self.outstation.apply_update(opendnp3.Analog(point.magnitude), point.index)
-                       
-                       elif point.measurement_type == "VA" and "Watts"  in point.name:
-                           angle1 = math.radians(m.get("angle"))
-                           point.magnitude = math.cos(angle1) * m.get("magnitude")
-                           self.outstation.apply_update(opendnp3.Analog(point.magnitude), point.index)
-                       
-                       elif point.measurement_type == "VA" and "angle"  in point.name:
-                           angle2 = math.radians(m.get("angle"))
-                           #point.magnitude = math.cos(angle1) * m.get("magnitude")
-                           self.outstation.apply_update(opendnp3.Analog(angle2), point.index)
-                           
-                       
-                elif "value" in m.keys():
-                    for point in self.outstation.get_agent().point_definitions.all_points():
-                        if m.get("measurement_mrid") == point.measurement_id and point.value != m.get("value"):
-                             point.value = m.get("value")
-                             self.outstation.apply_update(opendnp3.Binary(point.value), point.index)
-        except Exception as e:
-            message_str = "An error occurred while trying to translate the  message received" + str(e)
-
     # create_message_updates is called in new_start_service.py (in the new on_message method).
     def create_message_updates(self, simulation_id, message):
         """ This method creates an atomic "updates" object for any outstation to consume via their .Apply method.
@@ -125,7 +68,6 @@ class DNP3Mapping():
         """
         try:
             message_str = 'received message ' + str(message)
-
             builder = asiodnp3.UpdateBuilder()
             json_msg = yaml.safe_load(str(message))
 
@@ -193,13 +135,19 @@ class DNP3Mapping():
                                     angle2 = math.radians(m.get("angle"))
                                     builder.Update(opendnp3.Analog(angle2), point.index)
 
+                            OesTester.print_solarpanel_output_measurements(point, m)
+                            
                 elif "value" in m.keys():
                     for point in self.outstation.get_agent().point_definitions.all_points():
-                        if m.get("measurement_mrid") == point.measurement_id and point.value != m.get("value"):
-                             point.value = m.get("value")
-                             builder.Update(opendnp3.Binary(point.value), point.index)
-                             print("==========", point.value, point.index, point.measurement_id)
-
+                        if m.get("measurement_mrid") == point.measurement_id and point.value != m.get("value") and point.group != 30:
+                            point.value = m.get("value")
+                            builder.Update(opendnp3.Binary(point.value), point.index)
+                        if m.get("measurement_mrid") == point.measurement_id and point.value != m.get("value") and point.group == 30:
+                            point.magnitude = m.get("value")
+                            builder.Update(opendnp3.Analog(point.magnitude), point.index)
+                            
+                        OesTester.print_switch_position(point, m)
+                        OesTester.print_voltageregulator_output_measurements(point, m)
             # Return the atomic "updates" object
             print("Updates Created")
             return builder.Build()
@@ -276,18 +224,18 @@ class DNP3Mapping():
         reclosers = list()
         energyconsumers = list()
 
-        # Added sorting on MRID to maintain Index Orders for dnp3 index generation between different containers 
+        # Added sorting on name to maintain Index Orders for dnp3 index generation between different containers 
         for x in feeders:
-            measurements = sorted(x.get("measurements", []), key=lambda x: x['mRID'], reverse=True)
-            capacitors = sorted(x.get("capacitors", []), key=lambda x: x['mRID'], reverse=True)
-            regulators = sorted(x.get("regulators", []), key=lambda x: x['mRID'], reverse=True)
-            switches = sorted(x.get("switches", []), key=lambda x: x['mRID'], reverse=True)
-            solarpanels = sorted(x.get("solarpanels", []), key=lambda x: x['mRID'], reverse=True)
-            batteries = sorted(x.get("batteries", []), key=lambda x: x['mRID'], reverse=True)
-            fuses = sorted(x.get("fuses", []), key=lambda x: x['mRID'], reverse=True)
-            breakers = sorted(x.get("breakers", []), key=lambda x: x['mRID'], reverse=True)
-            reclosers = sorted(x.get("reclosers", []), key=lambda x: x['mRID'], reverse=True)
-            energyconsumers = sorted(x.get("energyconsumers", []), key=lambda x: x['mRID'], reverse=True)
+            measurements = sorted(x.get("measurements", []), key=lambda x: (x['name'],x['measurementType'],x["phases"]), reverse=True)
+            capacitors = sorted(x.get("capacitors", []), key=lambda x: x['name'], reverse=True)
+            regulators = sorted(x.get("regulators", []), key=lambda x: x['bankName'], reverse=True)
+            switches = sorted(x.get("switches", []), key=lambda x: x['name'], reverse=True)
+            solarpanels = sorted(x.get("solarpanels", []), key=lambda x: x['name'], reverse=True)
+            batteries = sorted(x.get("batteries", []), key=lambda x: x['name'], reverse=True)
+            fuses = sorted(x.get("fuses", []), key=lambda x: x['name'], reverse=True)
+            breakers = sorted(x.get("breakers", []), key=lambda x: x['name'], reverse=True)
+            reclosers = sorted(x.get("reclosers", []), key=lambda x: x['name'], reverse=True)
+            energyconsumers = sorted(x.get("energyconsumers", []), key=lambda x: x['name'], reverse=True)
 
         # Unique grouping of measurements - GroupBy Name, Type and Connectivity node
         groupByNameTypeConNode = defaultdict(list) 
@@ -301,24 +249,22 @@ class DNP3Mapping():
                 measurement_type = grpM[0].get("measurementType")
                 measurement_id = ""
                 for m in grpM:
-                    
                     measurement_id += m.get("mRID") + ","
-                    #measurement_id = grpM[0].get("mRID") + "," + grpM[1].get("mRID")+ "," + grpM[2].get("mRID")
 
-                    name1 = grpM[0]['name'] + '-' + "Phases:ABC" +  '-net-VAR-value'
-                    name2 = grpM[0]['name'] + '-' + "Phases:ABC" +  '-net-Watts-value'
-                    name3 = grpM[0]['name'] + '-' + "Phases:ABC" +  '-net-VA-value'
+                name1 = grpM[0]['name'] + '-' + "Phases:ABC" +  '-net-VAR-value'
+                name2 = grpM[0]['name'] + '-' + "Phases:ABC" +  '-net-Watts-value'
+                name3 = grpM[0]['name'] + '-' + "Phases:ABC" +  '-net-VA-value'
 
-                    description1 = "Name:" + grpM[0]['name'] + ",MeasurementType:" + "net-VAR" + ",ConnectivityNode:" + grpM[0].get("ConnectivityNode") +",SimObject:" + grpM[0].get("SimObject")
-                    description2 = "Name:" + grpM[0]['name'] + ",MeasurementType:" + "net-Watts" + ",ConnectivityNode:" + grpM[0].get("ConnectivityNode") +",SimObject:" + grpM[0].get("SimObject")
-                    description3 = "Name:" + grpM[0]['name'] + ",MeasurementType:" + "net-VA" + ",ConnectivityNode:" + grpM[0].get("ConnectivityNode") +",SimObject:" + grpM[0].get("SimObject")
+                description1 = "Name:" + grpM[0]['name'] + ",MeasurementType:" + "net-VAR" + ",ConnectivityNode:" + grpM[0].get("ConnectivityNode") +",SimObject:" + grpM[0].get("SimObject")
+                description2 = "Name:" + grpM[0]['name'] + ",MeasurementType:" + "net-Watts" + ",ConnectivityNode:" + grpM[0].get("ConnectivityNode") +",SimObject:" + grpM[0].get("SimObject")
+                description3 = "Name:" + grpM[0]['name'] + ",MeasurementType:" + "net-VA" + ",ConnectivityNode:" + grpM[0].get("ConnectivityNode") +",SimObject:" + grpM[0].get("SimObject")
 
-                    self.assign_val_a("AI", 30, 1, self.c_ai, name1, description1, measurement_type, measurement_id)
-                    self.c_ai += 1
-                    self.assign_val_a("AI", 30, 1, self.c_ai, name2, description2, measurement_type, measurement_id)
-                    self.c_ai += 1
-                    self.assign_val_a("AI", 30, 1, self.c_ai, name3, description3, measurement_type, measurement_id)
-                    self.c_ai += 1
+                self.assign_val_a("AI", 30, 1, self.c_ai, name1, description1, measurement_type, measurement_id)
+                self.c_ai += 1
+                self.assign_val_a("AI", 30, 1, self.c_ai, name2, description2, measurement_type, measurement_id)
+                self.c_ai += 1
+                self.assign_val_a("AI", 30, 1, self.c_ai, name3, description3, measurement_type, measurement_id)
+                self.c_ai += 1
 
         # Create Each Phase DNP3 Points
         for m in measurements:
@@ -351,12 +297,13 @@ class DNP3Mapping():
 
             elif m['MeasurementClass'] == "Discrete" and  measurement_type == "Pos":
                 if "RatioTapChanger" in m['name'] or "reg" in m["SimObject"]:
-                    # TODO: Do we need step?
-                    for r in range(5, 7): # [r==4]: Step, [r==5]: LineDropR, [r==6]:LineDropX 
-                        self.assign_val_d("AO", 42, 3, self.c_ao, name, description,  measurement_id, attribute[r])
-                        self.c_ao += 1
+                    for r in range(0, 7):
+                        description = "Name:" + m['name'] + ",Phase:" + m['phases'] + ",MeasurementType:" + attribute[r] + ",ConnectivityNode:" + m.get("ConnectivityNode") +",SimObject:" + m.get("SimObject")
+
+                        self.assign_val_a("AI", 30, 1, self.c_ai, name, description, attribute[r], measurement_id)
+                        self.c_ai += 1
                 else:
-                    self.assign_val_a("DI", 1, 2, self.c_di, name, description, measurement_type, measurement_id)
+                    self.assign_valc("DI", 1, 2, self.c_di, name, description, measurement_id, measurement_type)
                     self.c_di += 1
 
         for m in capacitors:
@@ -385,17 +332,14 @@ class DNP3Mapping():
                 description = "Name:" + m['bankName'] + ",ConductingEquipment_type:RatioTapChanger_Reg" +",Phase:" + m['bankPhases'] + ",Attribute:" + reg_attribute[n]
                 self.assign_val_d("AO", 42, 3, self.c_ao, name, description, measurement_id[0], reg_attribute[n])
                 self.c_ao += 1
-                self.assign_val_d("AI", 30, 1, self.c_ai, name, description, measurement_id[0], reg_attribute[n])
-                self.c_ai += 1
-            for i in range(5, 7):
+            for i in range(4, 7):
                 for j in range(0, len(m['bankPhases'])):
                     measurement_id = m.get("mRID")[j]
                     name = m['tankName'][j] + '-' + m['bankPhases'][j]
                     description = "Name:" + m['tankName'][j] + ",ConductingEquipment_type:RatioTapChanger_Reg"+ ",Phase:" + m['bankPhases'][j] + ",controlAttribute:" + reg_attribute[i]
                     self.assign_val_d("AO", 42, 3, self.c_ao, name, description, measurement_id,reg_attribute[i])
                     self.c_ao += 1
-                    self.assign_val_d("AI", 30, 1, self.c_ai, name, description, measurement_id,reg_attribute[i])
-                    self.c_ai += 1
+ 
         
         for m in solarpanels:
             for k in range(0, len(m['phases'])):

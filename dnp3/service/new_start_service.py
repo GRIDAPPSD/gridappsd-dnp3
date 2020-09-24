@@ -105,8 +105,7 @@ class Processor(object):
             else:
                 _log.debug("command_status={},command_value={}".format(command.status, command.value))
                 for point in self.outstation.get_agent().point_definitions.all_points():
-                    # print(command.value, point.attribute)
-                    if point.name in str(point_value.point_def):
+                    if point.name in str(point_value.point_def) and point.index==index:
                         self._diff.clear()
                         self._diff.add_difference(point.measurement_id, point.attribute, command.value, 0) # value : received value
                         msg = self._diff.get_message()
@@ -343,7 +342,7 @@ if __name__ == '__main__':
     opts = parser.parse_args()
     simulation_id = opts.simulation_id
     
-    with open("/gridappsd/services/gridappsd-dnp3/service/dnp3/port.json", 'r') as f:
+    with open("/tmp/port.json", 'r') as f:
         port_config = json.load(f)
     print(port_config)
 
