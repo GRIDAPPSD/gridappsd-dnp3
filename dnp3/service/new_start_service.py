@@ -104,7 +104,7 @@ class Processor(object):
                 _log.debug("command_status={},command_value={}".format(command.status, command.value))
                 for point in self.outstation.get_agent().point_definitions.all_points():
                     # print(command.value, point.attribute)
-                    if point.name in str(point_value.point_def):
+                    if point.name in str(point_value.point_def) and point.index==index:
                         self._diff.clear()
                         self._diff.add_difference(point.measurement_id, point.attribute, command.value, 0) # value : received value
                         msg = self._diff.get_message()
