@@ -41,11 +41,11 @@ from dnp3.visitors import *
 
 FILTERS = opendnp3.levels.NORMAL | opendnp3.levels.ALL_COMMS
 FILTERS = opendnp3.levels.NOTHING
-HOST = "127.0.0.1"
-HOST = "192.168.1.2"
-LOCAL = "0.0.0.0"
-# LOCAL = "192.168.1.2"
-PORT = 20000
+# HOST = "127.0.0.1"
+# HOST = "192.168.1.2"
+# LOCAL = "0.0.0.0"
+# # LOCAL = "192.168.1.2"
+# PORT = 20000
 
 
 stdout_stream = logging.StreamHandler(sys.stdout)
@@ -76,6 +76,9 @@ class MyMaster:
                   into outgoing messages.
     """
     def __init__(self,
+                 HOST="192.168.1.2", # "127.0.0.1
+                 LOCAL= "0.0.0.0",
+                 PORT=2000,
                  log_handler=asiodnp3.ConsoleLogger().Create(),
                  listener=asiodnp3.PrintingChannelListener().Create(),
                  soe_handler=asiodnp3.PrintingSOEHandler().Create(),
