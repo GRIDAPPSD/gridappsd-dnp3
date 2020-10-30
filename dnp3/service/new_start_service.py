@@ -395,15 +395,22 @@ if __name__ == '__main__':
         outstation = start_outstation(oustation, processor)
         #for outstation in outstation_list:
         dnp3_object.load_outstation(outstation)
-        dnp3_object_list.append(dnp3_object)
-
+        #dnp3_object_list.append(dnp3_object)group of matser ips and ports
+        # {
+        #     HOST = "192.168.1.2",  # "127.0.0.1
+        #     LOCAL = "0.0.0.0",
+        #     PORT = 20000,
+        #     DNP_3_ADDR = 1,
+        # }
+        dnp3_to_cim = None
+        ## TODO Loop through devices
         if True:
             app = MyMaster(HOST="192.168.1.2",  # "127.0.0.1
                            LOCAL="0.0.0.0",
-                           PORT=2000,
+                           PORT=20000,
                            log_handler=MyLogger(),
                            listener=AppChannelListener(),
-                           soe_handler=SOEHandler(),
+                           soe_handler=SOEHandler('632633', 'Shark', dnp3_to_cim),
                            master_application=MasterApplication())
             app.set_agent(processor)
             ## HARD CODE

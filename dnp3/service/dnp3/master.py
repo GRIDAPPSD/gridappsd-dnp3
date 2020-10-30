@@ -78,7 +78,8 @@ class MyMaster:
     def __init__(self,
                  HOST="192.168.1.2", # "127.0.0.1
                  LOCAL= "0.0.0.0",
-                 PORT=2000,
+                 PORT=20000,
+                 DNP3_ADDR=1,
                  log_handler=asiodnp3.ConsoleLogger().Create(),
                  listener=asiodnp3.PrintingChannelListener().Create(),
                  soe_handler=asiodnp3.PrintingSOEHandler().Create(),
@@ -106,12 +107,15 @@ class MyMaster:
             self.stack_config = asiodnp3.MasterStackConfig()
             self.stack_config.master.responseTimeout = openpal.TimeDuration().Seconds(2)
             self.stack_config.link.RemoteAddr = 1024  ## TODO get from config Was 10
+            self.stack_config.link.RemoteAddr = DNP3_ADDR
+        print('')
 
         _log.debug('Adding the master to the channel.')
         self.soe_handler = soe_handler
         self.master_application = master_application
         self.master = self.channel.AddMaster("master",
-                                   asiodnp3.PrintingSOEHandler().Create(),
+                                   # asiodnp3.PrintingSOEHandler().Create(),
+                                   self.soe_handler,
                                    self.master_application,
                                    self.stack_config)
 
@@ -239,7 +243,10 @@ class SOEHandler(opendnp3.ISOEHandler):
         This is an interface for SequenceOfEvents (SOE) callbacks from the Master stack to the application layer.
     """
 
-    def __init__(self):
+    def __init__(self, name, device, dnp3_to_cim):
+        self._name = name
+        self._device = device
+        self._dnp3_to_cim = dnp3_to_cim
         super(SOEHandler, self).__init__()
 
     def Process(self, info, values):
@@ -262,9 +269,29 @@ class SOEHandler(opendnp3.ISOEHandler):
         visitor_class = visitor_class_types[type(values)]
         visitor = visitor_class()
         values.Foreach(visitor)
+
+        cim_msg = {}
+        conversion_dict = self._dnp3_to_cim.conversion_dict
+        model_line_dict = self._dnp3_to_cim.model_line_dict
+
+        element_attr_to_mrid = model_line_dict[self._name]
+        conversion = conversion_dict[self._device]
+        import numbers
         for index, value in visitor.index_and_value:
-            log_string = 'SOEHandler.Process {0}\theaderIndex={1}\tdata_type={2}\tindex={3}\tvalue={4}'
+            print("Jeff SOE", index, value, isinstance(value, numbers.Number))
+            log_string = 'SOEHandlerSOEHandler.Process {0}\theaderIndex={1}\tdata_type={2}\tindex={3}\tvalue={4}'
             _log.debug(log_string.format(info.gv, info.headerIndex, type(values).__name__, index, value))
+            if str(index) in conversion:
+                dnp3_attr_name = conversion[str(index)]['Analog input:']
+                if dnp3_attr_name in element_attr_to_mrid:
+                    print(dnp3_attr_name,element_attr_to_mrid[dnp3_attr_name])
+                    if element_attr_to_mrid[dnp3_attr_name]['mrid'] not in cim_msg:
+                        cim_msg[element_attr_to_mrid[dnp3_attr_name]['mrid']] = {'magnitude': 0, 'angle': 0}
+                    value_type = element_attr_to_mrid[dnp3_attr_name]['type']
+                    cim_msg[element_attr_to_mrid[dnp3_attr_name]['mrid']][value_type] = value
+            else:
+                print(" No entry for index " + str(index))
+        print(cim_msg)
 
     def Start(self):
         _log.debug('In SOEHandler.Start')
