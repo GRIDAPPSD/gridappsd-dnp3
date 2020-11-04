@@ -344,7 +344,7 @@ if __name__ == '__main__':
     opts = parser.parse_args()
     simulation_id = opts.simulation_id
     
-    with open("/tmp/port.json", 'r') as f:
+    with open("/gridappsd/services/gridappsd-dnp3/service/dnp3/port.json", 'r') as f:
         port_config = json.load(f)
 
     filepath = "/tmp/gridappsd_tmp/{}/model_dict.json".format(simulation_id)
