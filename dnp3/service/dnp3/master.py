@@ -33,8 +33,14 @@
 # }}}
 
 import logging
+import numbers
 import sys
 import time
+import yaml
+import json
+
+from gridappsd.topics import simulation_output_topic, simulation_input_topic
+from gridappsd import GridAPPSD, DifferenceBuilder, utils
 
 from pydnp3 import opendnp3, openpal, asiopal, asiodnp3
 from dnp3.visitors import *
@@ -236,6 +242,13 @@ class AppChannelListener(asiodnp3.IChannelListener):
         pass
 
 
+
+
+def on_message(self, message):
+    json_msg = yaml.safe_load(str(message))
+    print(json_msg)
+
+
 class SOEHandler(opendnp3.ISOEHandler):
     """
         Override ISOEHandler in this manner to implement application-specific sequence-of-events behavior.
@@ -247,6 +260,10 @@ class SOEHandler(opendnp3.ISOEHandler):
         self._name = name
         self._device = device
         self._dnp3_to_cim = dnp3_to_cim
+        self._gapps = GridAPPSD(1234, address=utils.get_gridappsd_address(),
+                          username=utils.get_gridappsd_user(), password=utils.get_gridappsd_pass())
+        self._gapps.subscribe('/topic/goss.gridappsd.fim.input.'+str(1234), on_message)
+
         super(SOEHandler, self).__init__()
 
     def Process(self, info, values):
@@ -276,13 +293,18 @@ class SOEHandler(opendnp3.ISOEHandler):
 
         element_attr_to_mrid = model_line_dict[self._name]
         conversion = conversion_dict[self._device]
-        import numbers
+        print(conversion)
+
+        ## TODO check for each type seperate binary vs analog
+        ## Build conversion from xlsx file here instead of notebook
+
         for index, value in visitor.index_and_value:
             print("Jeff SOE", index, value, isinstance(value, numbers.Number))
             log_string = 'SOEHandlerSOEHandler.Process {0}\theaderIndex={1}\tdata_type={2}\tindex={3}\tvalue={4}'
             _log.debug(log_string.format(info.gv, info.headerIndex, type(values).__name__, index, value))
-            if str(index) in conversion:
-                dnp3_attr_name = conversion[str(index)]['Analog input:']
+            if isinstance(value, numbers.Number) and str(float(index)) in conversion['Analog input']:
+                # dnp3_attr_name = conversion[str(index)]['Analog input:']
+                dnp3_attr_name = conversion['Analog input'][str(float(index))]['type']
                 if dnp3_attr_name in element_attr_to_mrid:
                     print(dnp3_attr_name,element_attr_to_mrid[dnp3_attr_name])
                     if element_attr_to_mrid[dnp3_attr_name]['mrid'] not in cim_msg:
@@ -292,6 +314,9 @@ class SOEHandler(opendnp3.ISOEHandler):
             else:
                 print(" No entry for index " + str(index))
         print(cim_msg)
+        ## '/topic/goss.gridappsd.fim.input'
+
+        self._gapps.send('/topic/goss.gridappsd.fim.input.'+str(1234), json.dumps(cim_msg))
 
     def Start(self):
         _log.debug('In SOEHandler.Start')

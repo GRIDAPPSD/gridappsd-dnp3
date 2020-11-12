@@ -1,27 +1,71 @@
 import json
 import pandas as pd
 
-def build_conversion(DNP3_device_xlsx):
-    df = pd.read_excel(r'DNP3 list.xlsx', sheet_name='Shark')
+def get_conversion_model(csv_file,sheet_name):
+    df = pd.read_excel(csv_file,sheet_name=sheet_name)
+    master_dict ={
+        'Analog input':{},
+        'Analog output':{},
+        'Binary input':{},
+        'Binary output':{}
+    }
+    x = []
+    for row in df.iterrows():
+        if pd.isna(row[1][2]):
+    #         print(row[0])
+            x.append(row[0])
+#     print(df.shape)
+    x.append(df.shape[0])
+    it = iter(x)
+    for x in it:
+        type_name = df.iloc[x][1]
+        print(type_name)
+        next_value = next(it)
+        print (x+1, next_value)
+        print(pd.DataFrame(df[x+1:next_value]))
+        temp_df = pd.DataFrame(df[x+1: next_value])
+        temp_df = temp_df.set_index('Index')
+        master_dict[type_name] = temp_df.T.to_dict()
+    return master_dict
+
+def build_conversion(csv_file):
     conversion_dict = {}
-    df = df.set_index('Index')
-    shark_dict = df.T.to_dict()
-    conversion_dict['Shark'] = shark_dict
-    conversion_dict = {"Shark": shark_dict}
+    shark = get_conversion_model(csv_file, sheet_name='Shark')
+    conversion_dict['Shark'] = shark
+    shark = get_conversion_model(csv_file, sheet_name='Beckwith CapBank 2')
+    conversion_dict['Beckwith CapBank'] = shark
+    shark = get_conversion_model(csv_file, sheet_name='Beckwith LTC')
+    conversion_dict['Beckwith LTC'] = shark
     with open("conversion_dict.json", "w") as f:
         json.dump(conversion_dict, f, indent=2)
+
+# def build_conversion(DNP3_device_xlsx):
+#     df = pd.read_excel(r'DNP3 list.xlsx', sheet_name='Shark')
+#     conversion_dict = {}
+#     df = df.set_index('Index')
+#     shark_dict = df.T.to_dict()
+#     conversion_dict['Shark'] = shark_dict
+#     conversion_dict = {"Shark": shark_dict}
+#     with open("conversion_dict.json", "w") as f:
+#         json.dump(conversion_dict, f, indent=2)
 
 def model_line_dict(model_dict_json):
     from_node = '632'
     to_node = '633'
     node_name = '633'
     line_name = from_node + to_node
+    line_name = from_node + to_node
+    cap_name = "cap1"
+    reg_name = "Reg"
 
     with open("model_dict.json") as f:
         model_dict = json.load(f)
 
-    model_line_dict = {from_node + to_node: {}}
+    model_line_dict = {line_name: {},
+                       cap_name: {}}
     device_type = "Shark"
+    device_type = "Beckwith CapBank 2"
+    device_type = 'Beckwith LTC'
     if device_type == 'Shark':
         for meas in model_dict['feeders'][0]['measurements']:
             if meas['name'].startswith('ACLineSegment_' + line_name):
@@ -38,10 +82,52 @@ def model_line_dict(model_dict_json):
                                                                                    'type': 'angle'}
         #     if meas['ConnectivityNode'] == node_name and meas['ConductingEquipment_type'] == 'ACLineSegment':
         #         print(meas)
-    if device_type == 'Capacitor':
-        pass
-    if device_type == 'Regulator':
-        pass
+    elif device_type == 'Beckwith CapBank 2':
+        # LinearShuntCompensator
+        for meas in model_dict['feeders'][0]['measurements']:
+            if meas['name'].startswith('LinearShuntCompensator_' + cap_name):
+                if meas['measurementType'] == 'PNV':
+                    #                     print(meas)
+                    model_line_dict[cap_name]['? ' + meas['phases'] + ' ?'] = {'mrid': meas['mRID'],
+                                                                               'type': 'magnitude'}
+                    model_line_dict[cap_name]['? ' + meas['phases'] + ' ?'] = {'mrid': meas['mRID'], 'type': 'angle'}
+                elif meas['measurementType'] == 'VA':
+                    #                     print(meas)
+                    model_line_dict[cap_name]['? ' + meas['phases'] + ' ?'] = {'mrid': meas['mRID'],
+                                                                               'type': 'magnitude'}
+                    model_line_dict[cap_name]['? ' + meas['phases'] + ' ?'] = {'mrid': meas['mRID'], 'type': 'angle'}
+                elif meas['measurementType'] == 'POS':
+                    model_line_dict[cap_name]['? ' + meas['phases'] + ' ?'] = {'mrid': meas['mRID'], 'type': 'pos'}
+                    pass
+        for cap in model_dict['feeders'][0]["capacitors"]:
+            if cap['name'] == cap_name:
+                model_line_dict[cap_name]['manual close'] = {'mrid': meas['mRID'], 'type': 'magnitude'}
+                print(cap)
+                # TODO figure this out
+                # 0 manual close
+                # 1 manual open
+    elif device_type == 'Beckwith LTC':
+        for meas in model_dict['feeders'][0]['measurements']:
+            if meas['name'].startswith('LinearShuntCompensator_' + cap_name):
+                if meas['measurementType'] == 'PNV':
+                    #                     print(meas)
+                    model_line_dict[reg_name]['? ' + meas['phases'] + ' ?'] = {'mrid': meas['mRID'],
+                                                                               'type': 'magnitude'}
+                    model_line_dict[reg_name]['? ' + meas['phases'] + ' ?'] = {'mrid': meas['mRID'], 'type': 'angle'}
+                elif meas['measurementType'] == 'VA':
+                    #                     print(meas)
+                    model_line_dict[reg_name]['? ' + meas['phases'] + ' ?'] = {'mrid': meas['mRID'],
+                                                                               'type': 'magnitude'}
+                    model_line_dict[reg_name]['? ' + meas['phases'] + ' ?'] = {'mrid': meas['mRID'], 'type': 'angle'}
+                elif meas['measurementType'] == 'POS':
+                    # Tap position
+                    model_line_dict[cap_name]['? ' + meas['phases'] + ' ?'] = {'mrid': meas['mRID'], 'type': 'pos'}
+                    pass
+        for reg in model_dict['feeders'][0]["regulators"]:
+            if reg['bankName'] == reg_name:
+                # Do I have to count for each position change?
+                print(reg)
+
     model_line_dict
     with open("model_line_dict.json", "w") as f:
         json.dump(model_line_dict, f, indent=2)
