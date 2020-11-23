@@ -2,7 +2,7 @@ import cmd
 import logging
 import sys
 
-sys.path.append("../service")
+sys.path.append("../dnp3/service")
 
 from datetime import datetime
 from pydnp3 import opendnp3, openpal

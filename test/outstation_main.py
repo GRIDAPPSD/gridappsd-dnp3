@@ -1,14 +1,16 @@
 import os
 import sys
 import time
-sys.path.append("../dnp3/service")
 
-from dnp3.master import MyMaster, MyLogger, AppChannelListener, SOEHandler, MasterApplication
+from pydnp3 import opendnp3
+
+sys.path.append("../dnp3/service")
 from dnp3.dnp3_to_cim import CIMMapping
-from pydnp3 import opendnp3, openpal
+
+from outstation import OutstationApplication
 
 # def run_master(HOST="127.0.0.1",PORT=20000, DNP3_ADDR=10, convertion_type='Shark', object_name='632633'):
-def run_master(device_ip_port_config_all, names):
+def run_outstation(device_ip_port_config_all, names):
     masters = []
     dnp3_to_cim = CIMMapping(conversion_dict="conversion_dict.json", model_line_dict="model_line_dict.json")
     for name in names:
@@ -20,45 +22,24 @@ def run_master(device_ip_port_config_all, names):
         object_name='632633'
 
         elements_to_device = {'632633': 'Shark'}
-        application_1 = MyMaster(HOST=HOST,  # "127.0.0.1
-                                LOCAL="0.0.0.0",
+        application_1 = OutstationApplication(
+                                LOCAL_IP="0.0.0.0",
                                 PORT=int(PORT),
-                                DNP3_ADDR=int(DNP3_ADDR),
-                                log_handler=MyLogger(),
-                                listener=AppChannelListener(),
-                                soe_handler=SOEHandler(object_name, convertion_type, dnp3_to_cim),
-                                master_application=MasterApplication())
+                                DNP3_ADDR=int(DNP3_ADDR), config=device_ip_port_dict)
+
         # application.channel.SetLogFilters(openpal.LogFilters(opendnp3.levels.ALL_COMMS))
         # print('Channel log filtering level is now: {0}'.format(opendnp3.levels.ALL_COMMS))
         masters.append(application_1)
 
-    SLEEP_SECONDS = 1
-    time.sleep(SLEEP_SECONDS)
-    # group_variation = opendnp3.GroupVariationID(32, 2)
-    # time.sleep(SLEEP_SECONDS)
-    # print('\nReading status 1')
-    # application_1.master.ScanRange(group_variation, 0, 12)
-    # time.sleep(SLEEP_SECONDS)
-    # print('\nReading status 2')
-    # application_1.master.ScanRange(opendnp3.GroupVariationID(32, 2), 0, 3, opendnp3.TaskConfig().Default())
-    # time.sleep(SLEEP_SECONDS)
-    print('\nReading status 3')
-    # application_1.slow_scan.Demand()
-
-    # application_1.fast_scan_all.Demand()
-
-    # for master in masters:
-    #     master.fast_scan_all.Demand()
     while True:
-        cim_full_msg = {'simulation_id': 1234, 'timestamp': 0, 'messages':{}}
+        # cim_full_msg = {'simulation_id': 1234, 'timestamp': 0, 'messages':{}}
         for master in masters:
-            cim_msg = master.soe_handler.get_msg()
-            # print(cim_msg)
-            cim_full_msg['messages'].update(cim_msg)
-
-        print(cim_full_msg)
+            master.config["conversion_type"]
+            for index, value in dnp3_to_cim.conversion_dict[master.config["conversion_type"]]['Analog input'].items():
+                print(index)
+                int(float(index))
+                master.apply_update(opendnp3.Analog(1000.3 + float(index)), int(float(index)))
         time.sleep(10)
-
 
     print('\nStopping')
     for master in masters:
@@ -90,7 +71,7 @@ if __name__ == "__main__":
 
     device_ip_port_dict = device_ip_port_config_all[args.names[0]]
     print(device_ip_port_dict)
-    run_master(device_ip_port_config_all, args.names)
+    run_outstation(device_ip_port_config_all, args.names)
     # run_master(device_ip_port_dict['ip'],
     #            device_ip_port_dict['port'],
     #            device_ip_port_dict['link_local_addr'],

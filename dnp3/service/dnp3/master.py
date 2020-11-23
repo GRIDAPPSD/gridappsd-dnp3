@@ -135,6 +135,10 @@ class MyMaster:
                                                   openpal.TimeDuration().Minutes(1),
                                                   opendnp3.TaskConfig().Default())
 
+        self.fast_scan_all = self.master.AddClassScan(opendnp3.ClassField().AllClasses(),
+                                                  openpal.TimeDuration().Minutes(1),
+                                                  opendnp3.TaskConfig().Default())
+
         # self.channel.SetLogFilters(openpal.LogFilters(opendnp3.levels.ALL_COMMS))
         # self.master.SetLogFilters(openpal.LogFilters(opendnp3.levels.ALL_COMMS))
         self.channel.SetLogFilters(openpal.LogFilters(opendnp3.levels.NOTHING))
@@ -263,8 +267,12 @@ class SOEHandler(opendnp3.ISOEHandler):
         self._gapps = GridAPPSD(1234, address=utils.get_gridappsd_address(),
                           username=utils.get_gridappsd_user(), password=utils.get_gridappsd_pass())
         self._gapps.subscribe('/topic/goss.gridappsd.fim.input.'+str(1234), on_message)
+        self._cim_msg = {}
 
         super(SOEHandler, self).__init__()
+
+    def get_msg(self):
+        return self._cim_msg
 
     def Process(self, info, values):
         """
@@ -287,37 +295,60 @@ class SOEHandler(opendnp3.ISOEHandler):
         visitor = visitor_class()
         values.Foreach(visitor)
 
-        cim_msg = {}
+        # cim_msg = {}
         conversion_dict = self._dnp3_to_cim.conversion_dict
         model_line_dict = self._dnp3_to_cim.model_line_dict
 
         element_attr_to_mrid = model_line_dict[self._name]
         conversion = conversion_dict[self._device]
-        print(conversion)
+        # print(conversion)
 
         ## TODO check for each type seperate binary vs analog
-        ## Build conversion from xlsx file here instead of notebook
+        ## Analog check
+        if type(values) == opendnp3.ICollectionIndexedAnalog:
+            for index, value in visitor.index_and_value:
+                print("Jeff SOE", index, value, isinstance(value, numbers.Number))
+                log_string = 'SOEHandlerSOEHandler.Process {0}\theaderIndex={1}\tdata_type={2}\tindex={3}\tvalue={4}'
+                _log.debug(log_string.format(info.gv, info.headerIndex, type(values).__name__, index, value))
+                if isinstance(value, numbers.Number) and str(float(index)) in conversion['Analog input']:
+                    ## Check if multiplier is na or str
+                    multiplier = 1
+                    conversion_for_index = conversion['Analog input'][str(float(index))]
+                    if 'Multiplier' in conversion_for_index:
+                        multiplier = conversion_for_index['Multiplier']
+                        if type(multiplier) != str:
+                            multiplier = conversion_for_index['Multiplier']
+                    else:
+                        print("No multiplier")
+                    dnp3_attr_name = conversion_for_index['type']
+                    if dnp3_attr_name in element_attr_to_mrid:
+                        # print(dnp3_attr_name,element_attr_to_mrid[dnp3_attr_name])
+                        if element_attr_to_mrid[dnp3_attr_name]['mrid'] not in self._cim_msg:
+                            self._cim_msg[element_attr_to_mrid[dnp3_attr_name]['mrid']] = {'magnitude': 0,
+                                                                                     'angle': 0,
+                                                                                     'mrid': element_attr_to_mrid[dnp3_attr_name]['mrid']}
+                        value_type = element_attr_to_mrid[dnp3_attr_name]['type']
+                        self._cim_msg[element_attr_to_mrid[dnp3_attr_name]['mrid']][value_type] = value * multiplier
+                else:
+                    print(" No entry for index " + str(index))
+            # print(cim_msg)
+            ## '/topic/goss.gridappsd.fim.input'
+        elif type(values) == opendnp3.ICollectionIndexedBinaryOutputStatus:
+            for index, value in visitor.index_and_value:
+                print("Jeff SOE Binary", index, value, isinstance(value, numbers.Number))
+                log_string = 'SOEHandlerSOEHandler.Process {0}\theaderIndex={1}\tdata_type={2}\tindex={3}\tvalue={4}'
+                _log.debug(log_string.format(info.gv, info.headerIndex, type(values).__name__, index, value))
+        else:
+            for index, value in visitor.index_and_value:
+                print("Jeff SOE Other", index, value, isinstance(value, numbers.Number))
+                log_string = 'SOEHandlerSOEHandler.Process {0}\theaderIndex={1}\tdata_type={2}\tindex={3}\tvalue={4}'
+                _log.debug(log_string.format(info.gv, info.headerIndex, type(values).__name__, index, value))
 
-        for index, value in visitor.index_and_value:
-            print("Jeff SOE", index, value, isinstance(value, numbers.Number))
-            log_string = 'SOEHandlerSOEHandler.Process {0}\theaderIndex={1}\tdata_type={2}\tindex={3}\tvalue={4}'
-            _log.debug(log_string.format(info.gv, info.headerIndex, type(values).__name__, index, value))
-            if isinstance(value, numbers.Number) and str(float(index)) in conversion['Analog input']:
-                # dnp3_attr_name = conversion[str(index)]['Analog input:']
-                dnp3_attr_name = conversion['Analog input'][str(float(index))]['type']
-                if dnp3_attr_name in element_attr_to_mrid:
-                    print(dnp3_attr_name,element_attr_to_mrid[dnp3_attr_name])
-                    if element_attr_to_mrid[dnp3_attr_name]['mrid'] not in cim_msg:
-                        cim_msg[element_attr_to_mrid[dnp3_attr_name]['mrid']] = {'magnitude': 0, 'angle': 0}
-                    value_type = element_attr_to_mrid[dnp3_attr_name]['type']
-                    cim_msg[element_attr_to_mrid[dnp3_attr_name]['mrid']][value_type] = value
-            else:
-                print(" No entry for index " + str(index))
-        print(cim_msg)
-        ## '/topic/goss.gridappsd.fim.input'
+        # self._cim_msg = cim_msg
+        # self._gapps.send('/topic/goss.gridappsd.fim.input.'+str(1234), json.dumps(cim_msg))
 
-        self._gapps.send('/topic/goss.gridappsd.fim.input.'+str(1234), json.dumps(cim_msg))
-
+        # self._cim_msg = {"test":time.time()}
+        print(self._cim_msg)
     def Start(self):
         _log.debug('In SOEHandler.Start')
 
