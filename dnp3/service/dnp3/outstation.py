@@ -37,7 +37,13 @@ import logging
 import json
 from pydnp3 import opendnp3, openpal, asiopal, asiodnp3
 
+import sys
+stdout_stream = logging.StreamHandler(sys.stdout)
+stdout_stream.setFormatter(logging.Formatter('%(asctime)s\t%(name)s\t%(levelname)s\t%(message)s'))
+
 _log = logging.getLogger(__name__)
+_log.addHandler(stdout_stream)
+_log.setLevel(logging.DEBUG)
 
 
 class DNP3Outstation(opendnp3.IOutstationApplication):
@@ -74,7 +80,7 @@ class DNP3Outstation(opendnp3.IOutstationApplication):
     print(outstation_config)
     agent = None
 
-    def __init__(self, local_ip, port, outstation_config):
+    def __init__(self, local_ip, port, DNP3_ADDR, outstation_config):
         """
             Initialize the outstation's Application Layer.
 
@@ -93,6 +99,7 @@ class DNP3Outstation(opendnp3.IOutstationApplication):
         super(DNP3Outstation, self).__init__()
         self.local_ip = local_ip
         self.port = port
+        self.DNP3_ADDR = DNP3_ADDR
         #print(local_ip),
         self.set_outstation_config(outstation_config)
         # The following variables are initialized after start() is called.
@@ -123,27 +130,37 @@ class DNP3Outstation(opendnp3.IOutstationApplication):
            # link_addr = m['link_local_addr']
            # remote_addr = m['link_remote_addr']
         self.stack_config.link.LocalAddr = self.outstation_config.get('link_local_addr', 1)
-        self.stack_config.link.RemoteAddr = self.outstation_config.get('link_remote_addr',1024)
+        self.stack_config.link.LocalAddr = self.DNP3_ADDR
+        self.stack_config.link.RemoteAddr = self.outstation_config.get('link_remote_addr', 1024)
+        self.stack_config.link.RemoteAddr = self.DNP3_ADDR
         self.stack_config.link.KeepAliveTimeout = openpal.TimeDuration().Max()
+        self.stack_config.link.LocalAddr = 110 ## Was 10
+        self.stack_config.link.RemoteAddr = 11  ## TODO Fix
 
         # Configure the outstation database of points based on the contents of the data dictionary.
         _log.debug('Configuring the DNP3 Outstation database.')
         db_config = self.stack_config.dbConfig
         _log.debug(db_config)
-        for point in self.get_agent().point_definitions.all_points():
-            #print("Agent is", self.get_agent())
-            #_log.debug("Adding Point: {}".format(point))
-            if point.point_type == 'Analog Input':
-                cfg = db_config.analog[int(point.index)]
-            elif point.point_type == 'Binary Input':
-                cfg = db_config.binary[int(point.index)]
-            else:
-                # This database's point configuration is limited to Binary and Analog data types.
-                cfg = None
-            if cfg:
-                cfg.clazz = point.eclass
-                cfg.svariation = point.svariation
-                cfg.evariation = point.evariation
+        try:
+            for point in self.get_agent().point_definitions.all_points():
+                #print("Agent is", self.get_agent())
+                #_log.debug("Adding Point: {}".format(point))
+                if point.point_type == 'Analog Input':
+                    cfg = db_config.analog[int(point.index)]
+                elif point.point_type == 'Binary Input':
+                    cfg = db_config.binary[int(point.index)]
+                else:
+                    # This database's point configuration is limited to Binary and Analog data types.
+                    cfg = None
+                if cfg:
+                    cfg.clazz = point.eclass
+                    cfg.svariation = point.svariation
+                    cfg.evariation = point.evariation
+        except ValueError as err:
+            if False:
+            # if not os.environ.get('UNITTEST', False):
+                raise err
+            print("No agent")
 
         _log.debug('Creating a DNP3Manager.')
         threads_to_allocate = self.outstation_config.get('threads_to_allocate', 1)
@@ -172,7 +189,7 @@ class DNP3Outstation(opendnp3.IOutstationApplication):
                                                  int(self.port),
                                                  self.listener)
 
-
+        print("LocalAddr", self.stack_config.link.LocalAddr,"RemoteAddr",self.stack_config.link.RemoteAddr)
         #_log.debug(str(self.channel))
         _log.debug('Adding the DNP3 Outstation to the channel.')
         # self.command_handler =  opendnp3.SuccessCommandHandler().Create() # (or use this during regression testing)
@@ -429,8 +446,11 @@ class AppChannelListener(asiodnp3.IChannelListener):
 
         :param state: A ChannelState.
         """
-        self.dnp3Object.get_agent().publish_outstation_status(str(state))
-        #self.get_agent().publish_outstation_status(str(state))
+        try:
+            self.dnp3Object.get_agent().publish_outstation_status(str(state))
+            #self.get_agent().publish_outstation_status(str(state))
+        except ValueError as err:
+            print("No Agent")
 
 
 # class MyLogger(asiodnp3.ConsoleLogger):
@@ -450,8 +470,11 @@ class MyLogger(openpal.ILogHandler):
         message = entry.message
         _log.debug('DNP3Log {0}\t(filters={1}) {2}'.format(location, filters, message))
         # This is here as an example of how to send a specific log entry to the message bus as outstation status.
-        if 'Accepted connection' in message or 'Listening on' in message:
-            self.dnp3Object.get_agent().publish_outstation_status(str(message))
+        try:
+            if 'Accepted connection' in message or 'Listening on' in message:
+                self.dnp3Object.get_agent().publish_outstation_status(str(message))
+        except ValueError as err:
+            print("No agent")
 
 
 def main():

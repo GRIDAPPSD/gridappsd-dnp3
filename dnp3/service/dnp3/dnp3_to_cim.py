@@ -49,7 +49,86 @@ def build_conversion(csv_file):
 #     with open("conversion_dict.json", "w") as f:
 #         json.dump(conversion_dict, f, indent=2)
 
-def model_line_dict(model_dict_json):
+def get_device_dict(model_dict, model_line_dict, device_type, name):
+    if device_type == 'Shark':
+        for meas in model_dict['feeders'][0]['measurements']:
+            if meas['name'].startswith('ACLineSegment_'+name):
+                if meas['measurementType'] == 'PNV':
+                    if meas['measurementType'] not in model_line_dict[name]:  model_line_dict[name][meas['measurementType']] ={}
+                    model_line_dict[name][meas['measurementType']][meas['phases']] = {'mrid':meas['mRID'],'type':'magnitude'}
+                    model_line_dict[name][meas['measurementType']][meas['phases']] = {'mrid':meas['mRID'],'type':'angle'}
+                if meas['measurementType'] == 'VA':
+                    if meas['measurementType'] not in model_line_dict[name]:  model_line_dict[name][meas['measurementType']] ={}
+                    model_line_dict[name][meas['measurementType']][meas['phases']] = {'mrid':meas['mRID'],'type':'magnitude'}
+                    model_line_dict[name][meas['measurementType']][meas['phases']] = {'mrid':meas['mRID'],'type':'angle'}
+    elif device_type == 'Beckwith CapBank 2':
+    #LinearShuntCompensator
+        for meas in model_dict['feeders'][0]['measurements']:
+            if meas['name'].startswith('LinearShuntCompensator_'+name):
+                if meas['measurementType'] == 'PNV':
+                    if meas['measurementType'] not in model_line_dict[name]:  model_line_dict[name][meas['measurementType']] ={}
+                    model_line_dict[name][meas['measurementType']][meas['phases']] = {'mrid':meas['mRID'],'type':'magnitude'}
+                    model_line_dict[name][meas['measurementType']][meas['phases']] = {'mrid':meas['mRID'],'type':'angle'}
+                elif meas['measurementType'] == 'VA':
+                    if meas['measurementType'] not in model_line_dict[name]:  model_line_dict[name][meas['measurementType']] ={}
+                    model_line_dict[name][meas['measurementType']][meas['phases']] = {'mrid':meas['mRID'],'type':'magnitude'}
+                    model_line_dict[name][meas['measurementType']][meas['phases']] = {'mrid':meas['mRID'],'type':'angle'}
+                if meas['measurementType'] == 'Pos':
+                    if meas['measurementType'] not in model_line_dict[name]:
+                        model_line_dict[name][meas['measurementType']] = {}
+                    model_line_dict[name][meas['measurementType']][meas['phases']]  = {'mrid':meas['mRID'],'type':'pos'}
+                for cap in model_dict['feeders'][0]["capacitors"]:
+                    if cap['name'] == name:
+                        model_line_dict[name]['manual close'] = {'mrid':meas['mRID'],'type':'magnitude'}
+                        print(cap)
+                        #TODO figure this out
+                        # 0 manual close
+                        # 1 manual open
+    elif device_type == 'Beckwith LTC':
+        for meas in model_dict['feeders'][0]['measurements']:
+            if meas['name'].startswith('RatioTapChanger_'+name):#ConductingEquipment_name
+                if meas['measurementType'] == 'PNV':
+                    if meas['measurementType'] not in model_line_dict[name]:  model_line_dict[name][meas['measurementType']] ={}
+                    model_line_dict[name][meas['measurementType']][meas['phases']] = {'mrid':meas['mRID'],'type':'magnitude'}
+                    model_line_dict[name][meas['measurementType']][meas['phases']] = {'mrid':meas['mRID'],'type':'angle'}
+                elif meas['measurementType'] == 'VA':
+                    if meas['measurementType'] not in model_line_dict[name]:  model_line_dict[name][meas['measurementType']] ={}
+                    model_line_dict[name][meas['measurementType']][meas['phases']] = {'mrid':meas['mRID'],'type':'magnitude'}
+                    model_line_dict[name][meas['measurementType']][meas['phases']] = {'mrid':meas['mRID'],'type':'angle'}
+                if meas['measurementType'] == 'Pos':
+                    if meas['measurementType'] not in model_line_dict[name]:
+                        model_line_dict[name][meas['measurementType']] = {}
+                    model_line_dict[name][meas['measurementType']][meas['phases']]  = {'mrid':meas['mRID'],'type':'pos'}
+                for reg in model_dict['feeders'][0]["regulators"]:
+                    if reg['bankName'] == name:
+                        # Do I have to count for each position change?
+                        print(reg)
+
+def model_line_dict():
+    with open("model_dict.json") as f:
+        model_dict = json.load(f)
+
+    line_name = "632633"
+    cap_name = "cap1"
+    reg_name = "Reg"
+    model_line_dict = {line_name: {},
+                       cap_name: {},
+                       reg_name: {}}
+
+    name = line_name
+    device_type = "Shark"
+    get_device_dict(model_dict, model_line_dict, device_type, name)
+    device_type = "Beckwith CapBank 2"
+    name = "cap1"
+    get_device_dict(model_dict, model_line_dict, device_type, name)
+    device_type = 'Beckwith LTC'
+    name = "Reg"
+    get_device_dict(model_dict, model_line_dict, device_type, name)
+
+    with open("model_line_dict.json", "w") as f:
+        json.dump(model_line_dict, f, indent=2)
+
+def model_line_dict_old(model_dict_json):
     from_node = '632'
     to_node = '633'
     node_name = '633'
@@ -66,6 +145,22 @@ def model_line_dict(model_dict_json):
     device_type = "Shark"
     device_type = "Beckwith CapBank 2"
     device_type = 'Beckwith LTC'
+    # if device_type == 'Shark':
+    #     for meas in model_dict['feeders'][0]['measurements']:
+    #         if meas['name'].startswith('ACLineSegment_' + line_name):
+    #             print(meas)
+    #             if meas['measurementType'] == 'PNV':
+    #                 model_line_dict[from_node + to_node]['Voltage feedback ' + meas['phases'] + ' (L-N)'] = {
+    #                     'mrid': meas['mRID'], 'type': 'magnitude'}
+    #                 model_line_dict[from_node + to_node]['Voltage feedback ' + meas['phases'] + ' (L-L)'] = {
+    #                     'mrid': meas['mRID'], 'type': 'angle'}
+    #             if meas['measurementType'] == 'VA':
+    #                 model_line_dict[from_node + to_node]['P ' + meas['phases']] = {'mrid': meas['mRID'],
+    #                                                                                'type': 'magnitude'}
+    #                 model_line_dict[from_node + to_node]['Q ' + meas['phases']] = {'mrid': meas['mRID'],
+    #                                                                                'type': 'angle'}
+    #     #     if meas['ConnectivityNode'] == node_name and meas['ConductingEquipment_type'] == 'ACLineSegment':
+    #     #         print(meas)
     if device_type == 'Shark':
         for meas in model_dict['feeders'][0]['measurements']:
             if meas['name'].startswith('ACLineSegment_' + line_name):
@@ -80,8 +175,6 @@ def model_line_dict(model_dict_json):
                                                                                    'type': 'magnitude'}
                     model_line_dict[from_node + to_node]['Q ' + meas['phases']] = {'mrid': meas['mRID'],
                                                                                    'type': 'angle'}
-        #     if meas['ConnectivityNode'] == node_name and meas['ConductingEquipment_type'] == 'ACLineSegment':
-        #         print(meas)
     elif device_type == 'Beckwith CapBank 2':
         # LinearShuntCompensator
         for meas in model_dict['feeders'][0]['measurements']:

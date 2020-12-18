@@ -274,6 +274,40 @@ class SOEHandler(opendnp3.ISOEHandler):
     def get_msg(self):
         return self._cim_msg
 
+    def update_cim_msg_analog(self, CIM_msg, index, value, conversion, model):
+        if 'Analog input' in conversion and index in conversion['Analog input']:
+            CIM_phase = conversion['Analog input'][index]['CIM phase']
+            CIM_units = conversion['Analog input'][index]['CIM units']
+            CIM_attribute = conversion['Analog input'][index]['CIM attribute']
+            ## Check if multiplier is na or str
+            multiplier = conversion['Analog input'][index]['Multiplier']
+            mrid = model[CIM_units][CIM_phase]['mrid']
+            if type(multiplier) == str:
+                multiplier = 1
+
+            CIM_value = {'mrid': mrid}
+            if CIM_units == 'PNV' or CIM_units == 'VA':
+                CIM_value = {'mrid': mrid, 'magnitude': 0, 'angle': 0}
+
+            if mrid not in CIM_msg:
+                CIM_msg[mrid] = CIM_value
+            CIM_msg[mrid][CIM_attribute] = value * multiplier  # times multiplier
+
+    def update_cim_msg_binary(self, CIM_msg, index, value, conversion,model):
+        #     print(conversion['Binary input'][index])
+        if 'Binary input' in conversion and index in conversion['Binary input']:
+            CIM_phases = conversion['Binary input'][index]['CIM phase']
+            CIM_units = conversion['Binary input'][index]['CIM units']
+            CIM_attribute = conversion['Binary input'][index]['CIM attribute']
+            ## Check if multiplier is na or str
+            multiplier = conversion['Binary input'][index]['Multiplier']
+            for CIM_phase in CIM_phases:
+                mrid = model[CIM_units][CIM_phase]['mrid']
+                CIM_value = {'mrid': mrid}
+                if mrid not in CIM_msg:
+                    CIM_msg[mrid] = CIM_value
+                CIM_msg[mrid][CIM_attribute] = value * multiplier  # times multiplier
+
     def Process(self, info, values):
         """
             Process measurement data.
@@ -300,6 +334,7 @@ class SOEHandler(opendnp3.ISOEHandler):
         model_line_dict = self._dnp3_to_cim.model_line_dict
 
         element_attr_to_mrid = model_line_dict[self._name]
+        model = model_line_dict[self._name]
         conversion = conversion_dict[self._device]
         # print(conversion)
 
@@ -311,24 +346,25 @@ class SOEHandler(opendnp3.ISOEHandler):
                 log_string = 'SOEHandlerSOEHandler.Process {0}\theaderIndex={1}\tdata_type={2}\tindex={3}\tvalue={4}'
                 _log.debug(log_string.format(info.gv, info.headerIndex, type(values).__name__, index, value))
                 if isinstance(value, numbers.Number) and str(float(index)) in conversion['Analog input']:
-                    ## Check if multiplier is na or str
-                    multiplier = 1
-                    conversion_for_index = conversion['Analog input'][str(float(index))]
-                    if 'Multiplier' in conversion_for_index:
-                        multiplier = conversion_for_index['Multiplier']
-                        if type(multiplier) != str:
-                            multiplier = conversion_for_index['Multiplier']
-                    else:
-                        print("No multiplier")
-                    dnp3_attr_name = conversion_for_index['type']
-                    if dnp3_attr_name in element_attr_to_mrid:
-                        # print(dnp3_attr_name,element_attr_to_mrid[dnp3_attr_name])
-                        if element_attr_to_mrid[dnp3_attr_name]['mrid'] not in self._cim_msg:
-                            self._cim_msg[element_attr_to_mrid[dnp3_attr_name]['mrid']] = {'magnitude': 0,
-                                                                                     'angle': 0,
-                                                                                     'mrid': element_attr_to_mrid[dnp3_attr_name]['mrid']}
-                        value_type = element_attr_to_mrid[dnp3_attr_name]['type']
-                        self._cim_msg[element_attr_to_mrid[dnp3_attr_name]['mrid']][value_type] = value * multiplier
+                    self.update_cim_msg_analog(self._cim_msg, str(float(index)), value, conversion, model)
+                    # ## Check if multiplier is na or str
+                    # multiplier = 1
+                    # conversion_for_index = conversion['Analog input'][str(float(index))]
+                    # if 'Multiplier' in conversion_for_index:
+                    #     multiplier = conversion_for_index['Multiplier']
+                    #     if type(multiplier) != str:
+                    #         multiplier = conversion_for_index['Multiplier']
+                    # else:
+                    #     print("No multiplier")
+                    # dnp3_attr_name = conversion_for_index['type']
+                    # if dnp3_attr_name in element_attr_to_mrid:
+                    #     # print(dnp3_attr_name,element_attr_to_mrid[dnp3_attr_name])
+                    #     if element_attr_to_mrid[dnp3_attr_name]['mrid'] not in self._cim_msg:
+                    #         self._cim_msg[element_attr_to_mrid[dnp3_attr_name]['mrid']] = {'magnitude': 0,
+                    #                                                                  'angle': 0,
+                    #                                                                  'mrid': element_attr_to_mrid[dnp3_attr_name]['mrid']}
+                    #     value_type = element_attr_to_mrid[dnp3_attr_name]['type']
+                    #     self._cim_msg[element_attr_to_mrid[dnp3_attr_name]['mrid']][value_type] = value * multiplier
                 else:
                     print(" No entry for index " + str(index))
             # print(cim_msg)
@@ -338,6 +374,7 @@ class SOEHandler(opendnp3.ISOEHandler):
                 print("Jeff SOE Binary", index, value, isinstance(value, numbers.Number))
                 log_string = 'SOEHandlerSOEHandler.Process {0}\theaderIndex={1}\tdata_type={2}\tindex={3}\tvalue={4}'
                 _log.debug(log_string.format(info.gv, info.headerIndex, type(values).__name__, index, value))
+                self.update_cim_msg_binary(self._cim_msg, str(float(index)), value, conversion, model) # Untested might work
         else:
             for index, value in visitor.index_and_value:
                 print("Jeff SOE Other", index, value, isinstance(value, numbers.Number))
