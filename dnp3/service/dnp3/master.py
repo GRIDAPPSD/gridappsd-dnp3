@@ -281,6 +281,10 @@ class SOEHandler(opendnp3.ISOEHandler):
             CIM_attribute = conversion['Analog input'][index]['CIM attribute']
             ## Check if multiplier is na or str
             multiplier = conversion['Analog input'][index]['Multiplier']
+            if CIM_units not in model:
+                print(str(CIM_units) +' not in model')
+                return
+
             mrid = model[CIM_units][CIM_phase]['mrid']
             if type(multiplier) == str:
                 multiplier = 1
@@ -301,7 +305,13 @@ class SOEHandler(opendnp3.ISOEHandler):
             CIM_attribute = conversion['Binary input'][index]['CIM attribute']
             ## Check if multiplier is na or str
             multiplier = conversion['Binary input'][index]['Multiplier']
+            print(type(CIM_units),CIM_units)
+            if CIM_units not in model:
+                print(str(CIM_units) +' not in model')
+                return
             for CIM_phase in CIM_phases:
+                # print(model)
+                # exit(0)
                 mrid = model[CIM_units][CIM_phase]['mrid']
                 CIM_value = {'mrid': mrid}
                 if mrid not in CIM_msg:

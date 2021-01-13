@@ -1,19 +1,22 @@
 import json
 import pandas as pd
+import numpy as np
 
 def get_conversion_model(csv_file,sheet_name):
     df = pd.read_excel(csv_file,sheet_name=sheet_name)
-    master_dict ={
-        'Analog input':{},
-        'Analog output':{},
-        'Binary input':{},
-        'Binary output':{}
+    df = df.replace(np.nan, '', regex=True)
+    master_dict = {
+        'Analog input': {},
+        'Analog output': {},
+        'Binary input': {},
+        'Binary output': {}
     }
     x = []
-    for row in df.iterrows():
-        if pd.isna(row[1][2]):
-    #         print(row[0])
-            x.append(row[0])
+    ## Check for row breaks where there is no value or NaN for the 'Multipler'
+    for index, row in df.iterrows():
+        if pd.isna(row['Multiplier']) or row['Multiplier'] == '':
+            #print(index)
+            x.append(index)
 #     print(df.shape)
     x.append(df.shape[0])
     it = iter(x)
@@ -21,7 +24,7 @@ def get_conversion_model(csv_file,sheet_name):
         type_name = df.iloc[x][1]
         print(type_name)
         next_value = next(it)
-        print (x+1, next_value)
+        print(x+1, next_value)
         print(pd.DataFrame(df[x+1:next_value]))
         temp_df = pd.DataFrame(df[x+1: next_value])
         temp_df = temp_df.set_index('Index')

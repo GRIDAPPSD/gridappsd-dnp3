@@ -17,9 +17,8 @@ def run_master(device_ip_port_config_all, names):
         PORT=device_ip_port_dict['port']
         DNP3_ADDR= device_ip_port_dict['link_local_addr']
         convertion_type=device_ip_port_dict['conversion_type']
-        object_name='632633'
+        object_name=device_ip_port_dict['CIM object']
 
-        elements_to_device = {'632633': 'Shark'}
         application_1 = MyMaster(HOST=HOST,  # "127.0.0.1
                                 LOCAL="0.0.0.0",
                                 PORT=int(PORT),
