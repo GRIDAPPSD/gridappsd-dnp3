@@ -10,12 +10,13 @@ from pydnp3 import opendnp3, openpal
 # def run_master(HOST="127.0.0.1",PORT=20000, DNP3_ADDR=10, convertion_type='Shark', object_name='632633'):
 def run_master(device_ip_port_config_all, names):
     masters = []
-    dnp3_to_cim = CIMMapping(conversion_dict="conversion_dict.json", model_line_dict="model_line_dict.json")
+    dnp3_to_cim = CIMMapping(conversion_dict="conversion_dict_master.json", model_line_dict="model_line_dict.json")
     for name in names:
         device_ip_port_dict = device_ip_port_config_all[name]
         HOST=device_ip_port_dict['ip']
         PORT=device_ip_port_dict['port']
         DNP3_ADDR= device_ip_port_dict['link_local_addr']
+        LocalAddr= device_ip_port_dict['link_remote_addr']
         convertion_type=device_ip_port_dict['conversion_type']
         object_name=device_ip_port_dict['CIM object']
 
@@ -23,6 +24,7 @@ def run_master(device_ip_port_config_all, names):
                                 LOCAL="0.0.0.0",
                                 PORT=int(PORT),
                                 DNP3_ADDR=int(DNP3_ADDR),
+                                LocalAddr=int(LocalAddr),
                                 log_handler=MyLogger(),
                                 listener=AppChannelListener(),
                                 soe_handler=SOEHandler(object_name, convertion_type, dnp3_to_cim),
@@ -33,14 +35,14 @@ def run_master(device_ip_port_config_all, names):
 
     SLEEP_SECONDS = 1
     time.sleep(SLEEP_SECONDS)
-    # group_variation = opendnp3.GroupVariationID(32, 2)
+    group_variation = opendnp3.GroupVariationID(32, 2)
     # time.sleep(SLEEP_SECONDS)
     # print('\nReading status 1')
-    # application_1.master.ScanRange(group_variation, 0, 12)
+    application_1.master.ScanRange(group_variation, 0, 12)
     # time.sleep(SLEEP_SECONDS)
     # print('\nReading status 2')
-    # application_1.master.ScanRange(opendnp3.GroupVariationID(32, 2), 0, 3, opendnp3.TaskConfig().Default())
-    # time.sleep(SLEEP_SECONDS)
+    application_1.master.ScanRange(opendnp3.GroupVariationID(32, 2), 0, 3, opendnp3.TaskConfig().Default())
+    time.sleep(SLEEP_SECONDS)
     print('\nReading status 3')
     # application_1.slow_scan.Demand()
 

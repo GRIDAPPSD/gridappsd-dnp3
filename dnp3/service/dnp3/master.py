@@ -86,6 +86,7 @@ class MyMaster:
                  LOCAL= "0.0.0.0",
                  PORT=20000,
                  DNP3_ADDR=1,
+                 LocalAddr=0,
                  log_handler=asiodnp3.ConsoleLogger().Create(),
                  listener=asiodnp3.PrintingChannelListener().Create(),
                  soe_handler=asiodnp3.PrintingSOEHandler().Create(),
@@ -114,6 +115,7 @@ class MyMaster:
             self.stack_config.master.responseTimeout = openpal.TimeDuration().Seconds(2)
             self.stack_config.link.RemoteAddr = 1024  ## TODO get from config Was 10
             self.stack_config.link.RemoteAddr = DNP3_ADDR
+            self.stack_config.link.LocalAddr = LocalAddr
         print('')
 
         _log.debug('Adding the master to the channel.')
@@ -285,6 +287,12 @@ class SOEHandler(opendnp3.ISOEHandler):
                 print(str(CIM_units) +' not in model')
                 return
 
+            # print(CIM_phase, CIM_units)
+            # print(model[CIM_units])
+            if CIM_phase not in model[CIM_units]:
+                print(str(CIM_units) +' phase not correct in model')
+                return
+                
             mrid = model[CIM_units][CIM_phase]['mrid']
             if type(multiplier) == str:
                 multiplier = 1
@@ -375,6 +383,8 @@ class SOEHandler(opendnp3.ISOEHandler):
                     #                                                                  'mrid': element_attr_to_mrid[dnp3_attr_name]['mrid']}
                     #     value_type = element_attr_to_mrid[dnp3_attr_name]['type']
                     #     self._cim_msg[element_attr_to_mrid[dnp3_attr_name]['mrid']][value_type] = value * multiplier
+                elif str(index) in conversion['Analog input']:
+                    self.update_cim_msg_analog(self._cim_msg, str(index), value, conversion, model)
                 else:
                     print(" No entry for index " + str(index))
             # print(cim_msg)
@@ -392,7 +402,7 @@ class SOEHandler(opendnp3.ISOEHandler):
                 _log.debug(log_string.format(info.gv, info.headerIndex, type(values).__name__, index, value))
 
         # self._cim_msg = cim_msg
-        # self._gapps.send('/topic/goss.gridappsd.fim.input.'+str(1234), json.dumps(cim_msg))
+        self._gapps.send('/topic/goss.gridappsd.fim.input.'+str(1234), json.dumps(self._cim_msg))
 
         # self._cim_msg = {"test":time.time()}
         print(self._cim_msg)
