@@ -30,12 +30,12 @@ class MasterCmd(cmd.Cmd):
     def __init__(self):
         cmd.Cmd.__init__(self)
         self.prompt = 'master> '   # Used by the Cmd framework, displayed when issuing a command-line prompt.
-        dnp3_to_cim = CIMMapping(conversion_dict="conversion_dict.json", model_line_dict="model_line_dict.json")
+        dnp3_to_cim = CIMMapping(conversion_dict="conversion_dict_master.json", model_line_dict="model_line_dict.json")
         elements_to_device = {'632633': 'Shark'}
-        self.application = MyMaster(HOST="127.0.0.1",# "127.0.0.1
+        self.application = MyMaster(HOST="10.79.91.42",# "127.0.0.1
                                     LOCAL="0.0.0.0",
-                                    PORT=20000,
-                                    DNP3_ADDR=10,
+                                    PORT=20007,
+                                    DNP3_ADDR=43,
                                     log_handler=MyLogger(),
                                     listener=AppChannelListener(),
                                     soe_handler=SOEHandler('632633', 'Shark', dnp3_to_cim),
