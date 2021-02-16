@@ -276,6 +276,30 @@ class SOEHandler(opendnp3.ISOEHandler):
     def get_msg(self):
         return self._cim_msg
 
+    def update_cim_msg_analog_multi_index(self, CIM_msg, index, value, conversion, model):
+        CIM_phase = conversion[index]['CIM phase']
+        CIM_units = conversion[index]['CIM units']
+        CIM_attribute = conversion[index]['CIM attribute']
+        ## Check if multiplier is na or str
+        multiplier = conversion[index]['Multiplier']
+        if CIM_units not in model:
+            print(str(CIM_units) + ' not in model')
+            return
+        if CIM_phase not in model[CIM_units]:
+            print(str(model) + ' phase not correct in model', CIM_phase, CIM_units)
+            return
+        mrid = model[CIM_units][CIM_phase]['mrid']
+        if type(multiplier) == str:
+            multiplier = 1
+
+        CIM_value = {'mrid': mrid, 'angle': 0}
+        #         if CIM_units == 'PNV' or CIM_units == 'VA':
+        #             CIM_value = {'mrid':mrid, 'magnitude':0,'angle':0}
+
+        if mrid not in CIM_msg:
+            CIM_msg[mrid] = CIM_value
+        CIM_msg[mrid][CIM_attribute] = value * multiplier  # times multipier
+
     def update_cim_msg_analog(self, CIM_msg, index, value, conversion, model):
         if 'Analog input' in conversion and index in conversion['Analog input']:
             CIM_phase = conversion['Analog input'][index]['CIM phase']
@@ -363,7 +387,10 @@ class SOEHandler(opendnp3.ISOEHandler):
                 print("Jeff SOE", index, value, isinstance(value, numbers.Number))
                 log_string = 'SOEHandlerSOEHandler.Process {0}\theaderIndex={1}\tdata_type={2}\tindex={3}\tvalue={4}'
                 _log.debug(log_string.format(info.gv, info.headerIndex, type(values).__name__, index, value))
-                if isinstance(value, numbers.Number) and str(float(index)) in conversion['Analog input']:
+                if 'RTU' in self._device:  ##TODO Test!
+                    conversion_name_index_dict = {v['index']: v for k, v in conversion['Analog input'].items()}
+                    self.update_cim_msg_analog_multi_index(self._cim_msg,index,value,conversion_name_index_dict,model)
+                elif isinstance(value, numbers.Number) and str(float(index)) in conversion['Analog input']:
                     self.update_cim_msg_analog(self._cim_msg, str(float(index)), value, conversion, model)
                     # ## Check if multiplier is na or str
                     # multiplier = 1

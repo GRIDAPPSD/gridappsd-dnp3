@@ -5,30 +5,36 @@ import numpy as np
 def get_conversion_model(csv_file,sheet_name):
     df = pd.read_excel(csv_file,sheet_name=sheet_name)
     df = df.replace(np.nan, '', regex=True)
-    master_dict = {
-        'Analog input': {},
-        'Analog output': {},
-        'Binary input': {},
-        'Binary output': {}
-    }
+    master_dict ={
+        'Analog input':{},
+        'Analog output':{},
+        'Binary input':{},
+        'Binary output':{} }
     x = []
-    ## Check for row breaks where there is no value or NaN for the 'Multipler'
+
     for index, row in df.iterrows():
+#         print(pd.isna(row['Multiplier']))
         if pd.isna(row['Multiplier']) or row['Multiplier'] == '':
-            #print(index)
+#             print(index)
             x.append(index)
-#     print(df.shape)
+    print(df.shape)
     x.append(df.shape[0])
     it = iter(x)
     for x in it:
+#         print(x)
         type_name = df.iloc[x][1]
         print(type_name)
         next_value = next(it)
-        print(x+1, next_value)
+        print (x+1, next_value)
         print(pd.DataFrame(df[x+1:next_value]))
         temp_df = pd.DataFrame(df[x+1: next_value])
-        temp_df = temp_df.set_index('Index')
-        master_dict[type_name] = temp_df.T.to_dict()
+#         temp_df = temp_df.set_index('Index')
+#         temp_df = temp_df.replace(np.nan, '', regex=True)
+        temp_dict = temp_df.T.to_dict()
+        temp_dict_set_key_to_index = {}
+        for k,v in temp_dict.items():
+            temp_dict_set_key_to_index[int(v['Index'])] = v
+        master_dict[type_name] = temp_dict_set_key_to_index
     return master_dict
 
 def build_conversion(csv_file):
@@ -64,7 +70,19 @@ def get_device_dict(model_dict, model_line_dict, device_type, name):
                     if meas['measurementType'] not in model_line_dict[name]:  model_line_dict[name][meas['measurementType']] ={}
                     model_line_dict[name][meas['measurementType']][meas['phases']] = {'mrid':meas['mRID'],'type':'magnitude'}
                     model_line_dict[name][meas['measurementType']][meas['phases']] = {'mrid':meas['mRID'],'type':'angle'}
-    elif device_type == 'Beckwith CapBank 2':
+    elif device_type == 'RTU':
+        for meas in model_dict['feeders'][0]['measurements']:
+            if meas['name'].startswith('EnergyConsumer_'+name):
+    #             print(meas)
+                if meas['measurementType'] == 'PNV':
+                    if meas['measurementType'] not in model_line_dict[name]:  model_line_dict[name][meas['measurementType']] ={}
+                    model_line_dict[name][meas['measurementType']][meas['phases']] = {'mrid':meas['mRID'],'type':'magnitude'}
+                    model_line_dict[name][meas['measurementType']][meas['phases']] = {'mrid':meas['mRID'],'type':'angle'}
+                if meas['measurementType'] == 'VA':
+                    if meas['measurementType'] not in model_line_dict[name]:  model_line_dict[name][meas['measurementType']] ={}
+                    model_line_dict[name][meas['measurementType']][meas['phases']] = {'mrid':meas['mRID'],'type':'magnitude'}
+                    model_line_dict[name][meas['measurementType']][meas['phases']] = {'mrid':meas['mRID'],'type':'angle'}
+    elif device_type == 'Beckwith CapBank':
     #LinearShuntCompensator
         for meas in model_dict['feeders'][0]['measurements']:
             if meas['name'].startswith('LinearShuntCompensator_'+name):
