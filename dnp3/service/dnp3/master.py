@@ -116,7 +116,7 @@ class MyMaster:
             self.stack_config.link.RemoteAddr = 1024  ## TODO get from config Was 10
             self.stack_config.link.RemoteAddr = DNP3_ADDR
             self.stack_config.link.LocalAddr = LocalAddr
-        print('')
+        print(self.stack_config.link.RemoteAddr, self.stack_config.link.LocalAddr)
 
         _log.debug('Adding the master to the channel.')
         self.soe_handler = soe_handler
@@ -382,13 +382,16 @@ class SOEHandler(opendnp3.ISOEHandler):
 
         ## TODO check for each type seperate binary vs analog
         ## Analog check
+        print(type(values))
         if type(values) == opendnp3.ICollectionIndexedAnalog:
             for index, value in visitor.index_and_value:
                 print("Jeff SOE", index, value, isinstance(value, numbers.Number))
-                log_string = 'SOEHandlerSOEHandler.Process {0}\theaderIndex={1}\tdata_type={2}\tindex={3}\tvalue={4}'
-                _log.debug(log_string.format(info.gv, info.headerIndex, type(values).__name__, index, value))
+                # log_string = 'SOEHandlerSOEHandler.Process {0}\theaderIndex={1}\tdata_type={2}\tindex={3}\tvalue={4}'
+                # _log.debug(log_string.format(info.gv, info.headerIndex, type(values).__name__, index, value))
                 if 'RTU' in self._device:  ##TODO Test!
+                    print('Jeff RTU')
                     conversion_name_index_dict = {v['index']: v for k, v in conversion['Analog input'].items()}
+                    model = model_line_dict[conversion_name_index_dict[index]['CIM name']]
                     self.update_cim_msg_analog_multi_index(self._cim_msg,index,value,conversion_name_index_dict,model)
                 elif isinstance(value, numbers.Number) and str(float(index)) in conversion['Analog input']:
                     self.update_cim_msg_analog(self._cim_msg, str(float(index)), value, conversion, model)
@@ -419,14 +422,14 @@ class SOEHandler(opendnp3.ISOEHandler):
         elif type(values) == opendnp3.ICollectionIndexedBinaryOutputStatus:
             for index, value in visitor.index_and_value:
                 print("Jeff SOE Binary", index, value, isinstance(value, numbers.Number))
-                log_string = 'SOEHandlerSOEHandler.Process {0}\theaderIndex={1}\tdata_type={2}\tindex={3}\tvalue={4}'
-                _log.debug(log_string.format(info.gv, info.headerIndex, type(values).__name__, index, value))
+                # log_string = 'SOEHandlerSOEHandler.Process {0}\theaderIndex={1}\tdata_type={2}\tindex={3}\tvalue={4}'
+                # _log.debug(log_string.format(info.gv, info.headerIndex, type(values).__name__, index, value))
                 self.update_cim_msg_binary(self._cim_msg, str(float(index)), value, conversion, model) # Untested might work
         else:
             for index, value in visitor.index_and_value:
                 print("Jeff SOE Other", index, value, isinstance(value, numbers.Number))
-                log_string = 'SOEHandlerSOEHandler.Process {0}\theaderIndex={1}\tdata_type={2}\tindex={3}\tvalue={4}'
-                _log.debug(log_string.format(info.gv, info.headerIndex, type(values).__name__, index, value))
+                # log_string = 'SOEHandlerSOEHandler.Process {0}\theaderIndex={1}\tdata_type={2}\tindex={3}\tvalue={4}'
+                # _log.debug(log_string.format(info.gv, info.headerIndex, type(values).__name__, index, value))
 
         # self._cim_msg = cim_msg
         self._gapps.send('/topic/goss.gridappsd.fim.input.'+str(1234), json.dumps(self._cim_msg))
@@ -480,6 +483,7 @@ def collection_callback(result=None):
         opendnp3.CommandPointStateToString(result.state),
         opendnp3.CommandStatusToString(result.status)
     ))
+    print(result.__doc__)
 
 
 def command_callback(result=None):
