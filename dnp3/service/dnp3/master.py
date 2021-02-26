@@ -38,6 +38,7 @@ import sys
 import time
 import yaml
 import json
+import numpy as np
 
 from gridappsd.topics import simulation_output_topic, simulation_input_topic
 from gridappsd import GridAPPSD, DifferenceBuilder, utils
@@ -270,11 +271,15 @@ class SOEHandler(opendnp3.ISOEHandler):
                           username=utils.get_gridappsd_user(), password=utils.get_gridappsd_pass())
         self._gapps.subscribe('/topic/goss.gridappsd.fim.input.'+str(1234), on_message)
         self._cim_msg = {}
+        self._dnp3_msg = {}
 
         super(SOEHandler, self).__init__()
 
     def get_msg(self):
         return self._cim_msg
+
+    def get_dnp3_msg(self):
+        return self._dnp3_msg
 
     def update_cim_msg_analog_multi_index(self, CIM_msg, index, value, conversion, model):
         CIM_phase = conversion[index]['CIM phase']
@@ -378,7 +383,7 @@ class SOEHandler(opendnp3.ISOEHandler):
         element_attr_to_mrid = model_line_dict[self._name]
         model = model_line_dict[self._name]
         conversion = conversion_dict[self._device]
-        # print(conversion)
+        print(conversion)
 
         ## TODO check for each type seperate binary vs analog
         ## Analog check
@@ -388,11 +393,16 @@ class SOEHandler(opendnp3.ISOEHandler):
                 print("Jeff SOE", index, value, isinstance(value, numbers.Number))
                 # log_string = 'SOEHandlerSOEHandler.Process {0}\theaderIndex={1}\tdata_type={2}\tindex={3}\tvalue={4}'
                 # _log.debug(log_string.format(info.gv, info.headerIndex, type(values).__name__, index, value))
-                if 'RTU' in self._device:  ##TODO Test!
+                if 'RTU' in self._device:  
                     print('Jeff RTU')
+                    self._dnp3_msg[index]=value
                     conversion_name_index_dict = {v['index']: v for k, v in conversion['Analog input'].items()}
-                    model = model_line_dict[conversion_name_index_dict[index]['CIM name']]
-                    self.update_cim_msg_analog_multi_index(self._cim_msg,index,value,conversion_name_index_dict,model)
+                    if index in conversion_name_index_dict:
+                        # _log.debug("Conversion for " + str(index))
+                        model = model_line_dict[conversion_name_index_dict[index]['CIM name']]
+                        self.update_cim_msg_analog_multi_index(self._cim_msg,index,value,conversion_name_index_dict,model)
+                    else:
+                        _log.debug("No conversion for " + str(index))
                 elif isinstance(value, numbers.Number) and str(float(index)) in conversion['Analog input']:
                     self.update_cim_msg_analog(self._cim_msg, str(float(index)), value, conversion, model)
                     # ## Check if multiplier is na or str

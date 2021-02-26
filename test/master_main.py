@@ -1,11 +1,24 @@
 import os
 import sys
 import time
+import csv
+import numpy as np
 sys.path.append("../dnp3/service")
 
 from dnp3.master import MyMaster, MyLogger, AppChannelListener, SOEHandler, MasterApplication
 from dnp3.dnp3_to_cim import CIMMapping
 from pydnp3 import opendnp3, openpal
+
+
+def build_csv_writers(folder, filename, column_names):
+    _file = os.path.join(folder, filename)
+    if os.path.exists(_file):
+        os.remove(_file)
+    file_handle = open(_file, 'a')
+    csv_writer = csv.writer(file_handle, delimiter=',', quotechar='|', quoting=csv.QUOTE_MINIMAL)
+    csv_writer.writerow(column_names)
+    # csv_writer.writerow(['epoch time'] + column_names)
+    return file_handle, csv_writer
 
 # def run_master(HOST="127.0.0.1",PORT=20000, DNP3_ADDR=10, convertion_type='Shark', object_name='632633'):
 def run_master(device_ip_port_config_all, names):
@@ -50,15 +63,23 @@ def run_master(device_ip_port_config_all, names):
 
     # for master in masters:
     #     master.fast_scan_all.Demand()
+    msg_count=0
+    rtu_7_csvfile, rtu_7_writer = build_csv_writers('.', 'rtu_7.csv', list(range(300)))
     while True:
         cim_full_msg = {'simulation_id': 1234, 'timestamp': 0, 'messages':{}}
         for master in masters:
             cim_msg = master.soe_handler.get_msg()
+            dnp3_msg = master.soe_handler.get_dnp3_msg()
+            max_index = max(dnp3_msg.keys())
+            values  = [dnp3_msg[k] for k in range(max_index)]
+            rtu_7_writer.writerow(np.insert(values,0, msg_count))
+            rtu_7_csvfile.flush()
             # print(cim_msg)
             cim_full_msg['messages'].update(cim_msg)
+            msg_count+=1
 
         print(cim_full_msg)
-        time.sleep(10)
+        time.sleep(30)
 
 
     print('\nStopping')
