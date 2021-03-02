@@ -72,6 +72,7 @@ def on_message(simulation_id,message):
             # master = self.master_dict[command["object"]]
             # print(master)
             point = cap_point
+            # Capbank
             if command.get("object") == point.measurement_id and point.value != command.get("value"):
                 test_cmd = True
                 if test_cmd:
@@ -104,14 +105,19 @@ def on_message(simulation_id,message):
                                                                2,  # PULSE/LATCH_ON to index 0 for close
                                                                command_callback)
                         cap_point.value = 1
+            pv_point_tmp = PointValue(command_type=None, function_code=None, value=0, point_def=0, index=1, op_type=None)
+            pv_point_tmp.measurement_id = "x"
+            pv_points = [pv_point_tmp]
+            # PV points
+            for point in pv_points:
+                pass
+                # master.send_direct_operate_command(opendnp3.AnalogOutputInt32(7),
+                #                                                  1,
+                #                                                  command_callback)
 
-    # master.send_direct_operate_command(opendnp3.AnalogOutputInt32(7),
-    #                                                  1,
-    #                                                  command_callback)
-
-    # master.send_direct_operate_command(opendnp3.AnalogOutputInt32(14),
-    #                                                  2,
-    #                                                  command_callback)
+                # master.send_direct_operate_command(opendnp3.AnalogOutputInt32(14),
+                #                                                  2,
+                #                                                  command_callback)
 
     # master.send_select_and_operate_command(opendnp3.ControlRelayOutputBlock(opendnp3.ControlCode.LATCH_ON),
     #                                        1,
