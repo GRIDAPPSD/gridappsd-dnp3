@@ -105,9 +105,11 @@ def on_message(simulation_id,message):
                                                                2,  # PULSE/LATCH_ON to index 0 for close
                                                                command_callback)
                         cap_point.value = 1
-            pv_point_tmp = PointValue(command_type=None, function_code=None, value=0, point_def=0, index=1, op_type=None)
-            pv_point_tmp.measurement_id = "x"
-            pv_points = [pv_point_tmp]
+            pv_point_tmp1 = PointValue(command_type=None, function_code=None, value=0, point_def=0, index=1, op_type=None)
+            pv_point_tmp1.measurement_id = "x"
+            pv_point_tmp2 = PointValue(command_type=None, function_code=None, value=0, point_def=0, index=2, op_type=None)
+            pv_point_tmp2.measurement_id = "x"
+            pv_points = [pv_point_tmp1,pv_point_tmp2]
             # PV points
             for point in pv_points:
                 pass
