@@ -9,6 +9,9 @@ from dnp3.master import MyMaster, MyLogger, AppChannelListener, SOEHandler, Mast
 from dnp3.dnp3_to_cim import CIMMapping
 from pydnp3 import opendnp3, openpal
 
+from gridappsd.topics import simulation_output_topic, simulation_input_topic
+from gridappsd import GridAPPSD, DifferenceBuilder, utils
+
 
 def build_csv_writers(folder, filename, column_names):
     _file = os.path.join(folder, filename)
@@ -22,6 +25,8 @@ def build_csv_writers(folder, filename, column_names):
 
 # def run_master(HOST="127.0.0.1",PORT=20000, DNP3_ADDR=10, convertion_type='Shark', object_name='632633'):
 def run_master(device_ip_port_config_all, names):
+    gapps = GridAPPSD(1234, address=utils.get_gridappsd_address(),
+                      username=utils.get_gridappsd_user(), password=utils.get_gridappsd_pass())
     masters = []
     dnp3_to_cim = CIMMapping(conversion_dict="conversion_dict_master.json", model_line_dict="model_line_dict.json")
     for name in names:
@@ -42,6 +47,7 @@ def run_master(device_ip_port_config_all, names):
                                 listener=AppChannelListener(),
                                 soe_handler=SOEHandler(object_name, convertion_type, dnp3_to_cim),
                                 master_application=MasterApplication())
+        application_1.name=name
         # application.channel.SetLogFilters(openpal.LogFilters(opendnp3.levels.ALL_COMMS))
         # print('Channel log filtering level is now: {0}'.format(opendnp3.levels.ALL_COMMS))
         masters.append(application_1)
@@ -64,23 +70,30 @@ def run_master(device_ip_port_config_all, names):
     # for master in masters:
     #     master.fast_scan_all.Demand()
     msg_count=0
-    rtu_7_csvfile, rtu_7_writer = build_csv_writers('.', 'rtu_7.csv', list(range(300)))
+    csv_dict = {}
+    for master in masters:
+        rtu_7_csvfile, rtu_7_writer = build_csv_writers('.', master.name+'.csv', list(range(300)))
+        csv_dict[master.name] = {'csv_file':rtu_7_csvfile, 'csv_writer':rtu_7_writer}
+    cim_full_msg = {'simulation_id': 1234, 'timestamp': 0, 'message':{}}
     while True:
-        cim_full_msg = {'simulation_id': 1234, 'timestamp': 0, 'messages':{}}
         for master in masters:
             cim_msg = master.soe_handler.get_msg()
             dnp3_msg = master.soe_handler.get_dnp3_msg()
-            max_index = max(dnp3_msg.keys())
-            values  = [dnp3_msg[k] for k in range(max_index)]
-            rtu_7_writer.writerow(np.insert(values,0, msg_count))
-            rtu_7_csvfile.flush()
+            if len(dnp3_msg.keys()) > 0:
+                max_index = max(dnp3_msg.keys())
+                values = [dnp3_msg[k] for k in range(max_index)]
+                csv_dict[master.name]['csv_writer'].writerow(np.insert(values,0, msg_count))
+                csv_dict[master.name]['csv_file'].flush()
+            else:
+                print("no data yet")
+
             # print(cim_msg)
-            cim_full_msg['messages'].update(cim_msg)
+            cim_full_msg['message'].update(cim_msg)
+            gapps.send('/topic/goss.gridappsd.fim.input.' + str(1234), json.dumps(cim_msg))
             msg_count+=1
 
-        print(cim_full_msg)
-        time.sleep(30)
-
+            print(cim_full_msg)
+            time.sleep(30)
 
     print('\nStopping')
     for master in masters:
@@ -106,15 +119,17 @@ if __name__ == "__main__":
     # parser.add_argument("feeder_info",help='feeder info directory for y-matrix, etc.')
     args = parser.parse_args()
     print(args.names)
-    # exit(0)
+    names = args.names
+
     with open("device_ip_port_config_all.json") as f:
         device_ip_port_config_all = json.load(f)
+    if args.names[0] == '*':
+        names = []
+        device_names = device_ip_port_config_all.keys()
+        for device_name in device_names:
+            if 'test' not in device_names:
+                names.append(device_name)
 
-    device_ip_port_dict = device_ip_port_config_all[args.names[0]]
+    device_ip_port_dict = device_ip_port_config_all[names[0]]
     print(device_ip_port_dict)
-    run_master(device_ip_port_config_all, args.names)
-    # run_master(device_ip_port_dict['ip'],
-    #            device_ip_port_dict['port'],
-    #            device_ip_port_dict['link_local_addr'],
-    #            device_ip_port_dict['conversion_type'],
-    #            '632633')
+    run_master(device_ip_port_config_all, names)

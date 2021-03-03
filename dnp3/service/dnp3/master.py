@@ -267,9 +267,9 @@ class SOEHandler(opendnp3.ISOEHandler):
         self._name = name
         self._device = device
         self._dnp3_to_cim = dnp3_to_cim
-        self._gapps = GridAPPSD(1234, address=utils.get_gridappsd_address(),
-                          username=utils.get_gridappsd_user(), password=utils.get_gridappsd_pass())
-        self._gapps.subscribe('/topic/goss.gridappsd.fim.input.'+str(1234), on_message)
+        # self._gapps = GridAPPSD(1234, address=utils.get_gridappsd_address(),
+        #                   username=utils.get_gridappsd_user(), password=utils.get_gridappsd_pass())
+        # self._gapps.subscribe('/topic/goss.gridappsd.fim.input.'+str(1234), on_message)
         self._cim_msg = {}
         self._dnp3_msg = {}
 
@@ -442,7 +442,7 @@ class SOEHandler(opendnp3.ISOEHandler):
                 # _log.debug(log_string.format(info.gv, info.headerIndex, type(values).__name__, index, value))
 
         # self._cim_msg = cim_msg
-        self._gapps.send('/topic/goss.gridappsd.fim.input.'+str(1234), json.dumps(self._cim_msg))
+        # self._gapps.send('/topic/goss.gridappsd.fim.input.'+str(1234), json.dumps(self._cim_msg))
 
         # self._cim_msg = {"test":time.time()}
         print(self._cim_msg)
