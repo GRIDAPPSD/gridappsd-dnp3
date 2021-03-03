@@ -23,7 +23,10 @@ def build_csv_writers(folder, filename, column_names):
 # def run_master(HOST="127.0.0.1",PORT=20000, DNP3_ADDR=10, convertion_type='Shark', object_name='632633'):
 def run_master(device_ip_port_config_all, names):
     masters = []
-    dnp3_to_cim = CIMMapping(conversion_dict="conversion_dict_master.json", model_line_dict="model_line_dict.json")
+    data_loc = '.'
+    data_loc = '/media/sf_git_scada_read/GridAppsD_Usecase3/701_disag/701/test'
+# dnp3_to_cim = CIMMapping(conversion_dict="conversion_dict_master.json", model_line_dict="model_line_dict.json")
+    dnp3_to_cim = CIMMapping(conversion_dict=os.path.join(data_loc,"conversion_dict_master.json"), model_line_dict=os.path.join(data_loc,"model_line_dict_master.json"))
     for name in names:
         device_ip_port_dict = device_ip_port_config_all[name]
         HOST=device_ip_port_dict['ip']
@@ -64,9 +67,9 @@ def run_master(device_ip_port_config_all, names):
     # for master in masters:
     #     master.fast_scan_all.Demand()
     msg_count=0
-    rtu_7_csvfile, rtu_7_writer = build_csv_writers('.', 'rtu_7.csv', list(range(300)))
+    rtu_7_csvfile, rtu_7_writer = build_csv_writers('.', 'rtu1.csv', ['count']+list(range(300)))
     while True:
-        cim_full_msg = {'simulation_id': 1234, 'timestamp': 0, 'messages':{}}
+        cim_full_msg = {'simulation_id': 1234, 'timestamp': 0, 'message':{'measurements':{}}}
         for master in masters:
             cim_msg = master.soe_handler.get_msg()
             dnp3_msg = master.soe_handler.get_dnp3_msg()
@@ -75,11 +78,13 @@ def run_master(device_ip_port_config_all, names):
             rtu_7_writer.writerow(np.insert(values,0, msg_count))
             rtu_7_csvfile.flush()
             # print(cim_msg)
-            cim_full_msg['messages'].update(cim_msg)
+            # message['message']['measurements']
+            cim_full_msg['message']['measurements'].update(cim_msg)
+            # self._gapps.send('/topic/goss.gridappsd.fim.input.'+str(1234), json.dumps(temp_cim_msg))
             msg_count+=1
 
         print(cim_full_msg)
-        time.sleep(30)
+        time.sleep(10)
 
 
     print('\nStopping')
