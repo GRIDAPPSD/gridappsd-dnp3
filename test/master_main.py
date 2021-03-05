@@ -5,6 +5,7 @@ import csv
 import platform
 import numpy as np
 import yaml
+import logging
 
 sys.path.append("../dnp3/service")
 
@@ -19,6 +20,8 @@ from gridappsd import GridAPPSD, DifferenceBuilder, utils
 
 myCIMProcessor = None
 
+_log = logging.getLogger(__name__)
+
 def build_csv_writers(folder, filename, column_names):
     _file = os.path.join(folder, filename)
     if os.path.exists(_file):
@@ -29,9 +32,12 @@ def build_csv_writers(folder, filename, column_names):
     # csv_writer.writerow(['epoch time'] + column_names)
     return file_handle, csv_writer
 
-def on_message(message):
+def on_message(simulation_id, message):
     json_msg = yaml.safe_load(str(message))
+    print('Receive message')
     print(json_msg)
+    # _log.info("Receive message")
+    # _log.info(json_msg)
     # find point to master list
     myCIMProcessor.process(message)
 
@@ -39,6 +45,7 @@ def on_message(message):
 def run_master(device_ip_port_config_all, names):
     gapps = GridAPPSD(1234, address=utils.get_gridappsd_address(),
                       username=utils.get_gridappsd_user(), password=utils.get_gridappsd_pass())
+    gapps.subscribe('/topic/goss.gridappsd.fim.output.' + str('1234'), on_message)
     masters = []
     data_loc = '.'
     if 'Darwin' != platform.system():
@@ -114,7 +121,8 @@ def run_master(device_ip_port_config_all, names):
             gapps.send('/topic/goss.gridappsd.fim.input.'+str(1234), json.dumps(cim_full_msg))
             msg_count+=1
 
-            print(cim_full_msg)
+            print(str(cim_full_msg)[:20])
+            _log.info(cim_full_msg)
             time.sleep(30)
 
 
