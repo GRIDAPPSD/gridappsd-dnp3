@@ -4,7 +4,11 @@ import time
 import csv
 import platform
 import numpy as np
+import yaml
+
 sys.path.append("../dnp3/service")
+
+from CIMProcessor import CIMProcessor
 
 from dnp3.master import MyMaster, MyLogger, AppChannelListener, SOEHandler, MasterApplication
 from dnp3.dnp3_to_cim import CIMMapping
@@ -13,6 +17,7 @@ from pydnp3 import opendnp3, openpal
 from gridappsd.topics import simulation_output_topic, simulation_input_topic
 from gridappsd import GridAPPSD, DifferenceBuilder, utils
 
+myCIMProcessor = None
 
 def build_csv_writers(folder, filename, column_names):
     _file = os.path.join(folder, filename)
@@ -23,6 +28,12 @@ def build_csv_writers(folder, filename, column_names):
     csv_writer.writerow(column_names)
     # csv_writer.writerow(['epoch time'] + column_names)
     return file_handle, csv_writer
+
+def on_message(message):
+    json_msg = yaml.safe_load(str(message))
+    print(json_msg)
+    # find point to master list
+    myCIMProcessor.process(message)
 
 # def run_master(HOST="127.0.0.1",PORT=20000, DNP3_ADDR=10, convertion_type='Shark', object_name='632633'):
 def run_master(device_ip_port_config_all, names):
@@ -56,6 +67,10 @@ def run_master(device_ip_port_config_all, names):
         # application.channel.SetLogFilters(openpal.LogFilters(opendnp3.levels.ALL_COMMS))
         # print('Channel log filtering level is now: {0}'.format(opendnp3.levels.ALL_COMMS))
         masters.append(application_1)
+        if name == 'RTU1':
+            global myCIMProcessor
+            point_definitions = None
+            myCIMProcessor = CIMProcessor(point_definitions,application_1)
 
     SLEEP_SECONDS = 1
     time.sleep(SLEEP_SECONDS)
@@ -96,7 +111,7 @@ def run_master(device_ip_port_config_all, names):
             # print(cim_msg)
             # message['message']['measurements']
             cim_full_msg['message']['measurements'].update(cim_msg)
-            # self._gapps.send('/topic/goss.gridappsd.fim.input.'+str(1234), json.dumps(temp_cim_msg))
+            gapps.send('/topic/goss.gridappsd.fim.input.'+str(1234), json.dumps(cim_full_msg))
             msg_count+=1
 
             print(cim_full_msg)
