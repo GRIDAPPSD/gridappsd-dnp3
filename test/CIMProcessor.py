@@ -49,9 +49,24 @@ class CIMProcessor(object):
                 + '\njson_msg = {0}'.format(json_msg))
 
         # fncs_input_message = {"{}".format(simulation_id): {}}
+# "capacitors":[
+# {"name":"701-104cf","mRID":"_5955BE75-5EE5-477A-936F-65EDE5E3B831","CN1":"cf_701_311","phases":"ABC","kvar_A":400.0,"kvar_B":400.0,"kvar_C":400.0,"nominalVoltage":12000.0,"nomU":12000.0,"phaseConnection":"Y","grounded":true,"enabled":true,"mode":"voltage","targetValue":7080.5,"targetDeadband":57.8,"aVRDelay":0.0,"monitoredName":"701_70799_mc","monitoredClass":"ACLineSegment","monitoredBus":"fu_701_9492","monitoredPhase":"B"},
+# {"name":"701-275cw","mRID":"_C1706031-2C1C-464C-8376-6A51FA70B470","CN1":"fu_701_20042","phases":"ABC","kvar_A":100.0,"kvar_B":100.0,"kvar_C":100.0,"nominalVoltage":12000.0,"nomU":12000.0,"phaseConnection":"Y","grounded":true,"enabled":true,"mode":"voltage","targetValue":7080.5,"targetDeadband":57.8,"aVRDelay":0.0,"monitoredName":"701_167489_mc","monitoredClass":"ACLineSegment","monitoredBus":"cw_701_1710","monitoredPhase":"B"},
+# {"name":"701-319cw","mRID":"_245E3924-8292-46D5-A11E-C80F7D6EE253","CN1":"cw_701_347","phases":"ABC","kvar_A":400.0,"kvar_B":400.0,"kvar_C":400.0,"nominalVoltage":12000.0,"nomU":12000.0,"phaseConnection":"Y","grounded":true,"enabled":true,"mode":"voltage","targetValue":7080.5,"targetDeadband":57.8,"aVRDelay":0.0,"monitoredName":"701_57838_mc","monitoredClass":"ACLineSegment","monitoredBus":"fu_701_9026","monitoredPhase":"B"}
+# ],
+# "regulators":[
+# {"bankName":"s1","size":"1","bankPhases":"ABC","tankName":[""],"endNumber":[2],"endPhase":["ABC"],"rtcName":["s1"],"mRID":["_D081C22C-D840-4303-8C95-C9151610C9A6"],"monitoredPhase":["A"],"TapChanger.tculControlMode":["volt"],"highStep":[16],"lowStep":[-16],"neutralStep":[0],"normalStep":[0],"TapChanger.controlEnabled":[true],"lineDropCompensation":[true],"ltcFlag":[true],"RegulatingControl.enabled":[true],"RegulatingControl.discrete":[true],"RegulatingControl.mode":["voltage"],"step":[-8],"targetValue":[123.0000],"targetDeadband":[2.0000],"limitVoltage":[0.0000],"stepVoltageIncrement":[0.6250],"neutralU":[6927.6000],"initialDelay":[30.0000],"subsequentDelay":[2.0000],"lineDropR":[7.0000],"lineDropX":[0.0000],"reverseLineDropR":[0.0000],"reverseLineDropX":[0.0000],"ctRating":[300.0000],"ctRatio":[1500.0000],"ptRatio":[57.7300]}
+# ],
 
-        cap_point = PointValue(command_type=None, function_code=None, value=1, point_def=0, index=0, op_type=None)
-        cap_point.measurement_id = "_5955BE75-5EE5-477A-936F-65EDE5E3B831"
+        cap_point1 = PointValue(command_type=None, function_code=None, value=1, point_def=0, index=0, op_type=None)
+        cap_point1.measurement_id = "_5955BE75-5EE5-477A-936F-65EDE5E3B831"
+        cap_point2 = PointValue(command_type=None, function_code=None, value=1, point_def=0, index=0, op_type=None)
+        cap_point2.measurement_id = "_C1706031-2C1C-464C-8376-6A51FA70B470"
+        cap_point3 = PointValue(command_type=None, function_code=None, value=1, point_def=0, index=0, op_type=None)
+        cap_point3.measurement_id = "_245E3924-8292-46D5-A11E-C80F7D6EE253"
+        cap_list = [cap_point1,cap_point2,cap_point3]
+        reg_point1.measurement_id = "_D081C22C-D840-4303-8C95-C9151610C9A6"
+        ref_list = [reg_point1]
         # "_5955BE75-5EE5-477A-936F-65EDE5E3B831"
         # master = masters[0]
 
@@ -68,40 +83,41 @@ class CIMProcessor(object):
                 print("command", command)
                 # master = self.master_dict[command["object"]]
                 # print(master)
-                point = cap_point
-                # Capbank
-                if command.get("object") == point.measurement_id and point.value != command.get("value"):
-                    open_cmd = command.get("value") == 0
-                    if open_cmd:
-                        # Open
-                        master.send_select_and_operate_command(opendnp3.ControlRelayOutputBlock(opendnp3.ControlCode.LATCH_ON),
-                                                                0,  # PULSE/LATCH_ON to index 0 for open
-                                                                command_callback)
-                        master.send_select_and_operate_command(opendnp3.ControlRelayOutputBlock(opendnp3.ControlCode.LATCH_ON),
-                                                                1,  # PULSE/LATCH_ON to index 1 for open
-                                                                command_callback)
-                        master.send_select_and_operate_command(opendnp3.ControlRelayOutputBlock(opendnp3.ControlCode.LATCH_ON),
-                                                                2,  # PULSE/LATCH_ON to index 2 for open
-                                                                command_callback)
-                        cap_point.value = 0
-                    else:
-                        # Will need 5 minutes after open operation for this capbank
-                        # Close
-                        # master.send_select_and_operate_command(opendnp3.ControlRelayOutputBlock(opendnp3.ControlCode.LATCH_ON),
-                        #                                                     0, # PULSE/LATCH_ON to index 0 for close
-                        #                                                     command_callback)
-                        master.send_select_and_operate_command(opendnp3.ControlRelayOutputBlock(opendnp3.ControlCode.LATCH_OFF),
-                                                                0,  # PULSE/LATCH_ON to index 0 for close
-                                                                command_callback)
-                        master.send_select_and_operate_command(opendnp3.ControlRelayOutputBlock(opendnp3.ControlCode.LATCH_OFF),
-                                                                1,  # PULSE/LATCH_ON to index 0 for close
-                                                                command_callback)
-                        master.send_select_and_operate_command(opendnp3.ControlRelayOutputBlock(opendnp3.ControlCode.LATCH_OFF),
-                                                                2,  # PULSE/LATCH_ON to index 0 for close
-                                                                command_callback)
-                        cap_point.value = 1
-                elif command.get("object") == point.measurement_id and point.value == command.get("value"):
-                    print("Cap check", command.get("object"), command.get("value"))
+                point = cap_point1
+                for point in cap_list:
+                    # Capbank
+                    if command.get("object") == point.measurement_id and point.value != command.get("value"):
+                        open_cmd = command.get("value") == 0
+                        if open_cmd:
+                            # Open
+                            master.send_select_and_operate_command(opendnp3.ControlRelayOutputBlock(opendnp3.ControlCode.LATCH_ON),
+                                                                    0,  # PULSE/LATCH_ON to index 0 for open
+                                                                    command_callback)
+                            master.send_select_and_operate_command(opendnp3.ControlRelayOutputBlock(opendnp3.ControlCode.LATCH_ON),
+                                                                    1,  # PULSE/LATCH_ON to index 1 for open
+                                                                    command_callback)
+                            master.send_select_and_operate_command(opendnp3.ControlRelayOutputBlock(opendnp3.ControlCode.LATCH_ON),
+                                                                    2,  # PULSE/LATCH_ON to index 2 for open
+                                                                    command_callback)
+                            cap_point.value = 0
+                        else:
+                            # Will need 5 minutes after open operation for this capbank
+                            # Close
+                            # master.send_select_and_operate_command(opendnp3.ControlRelayOutputBlock(opendnp3.ControlCode.LATCH_ON),
+                            #                                                     0, # PULSE/LATCH_ON to index 0 for close
+                            #                                                     command_callback)
+                            master.send_select_and_operate_command(opendnp3.ControlRelayOutputBlock(opendnp3.ControlCode.LATCH_OFF),
+                                                                    0,  # PULSE/LATCH_ON to index 0 for close
+                                                                    command_callback)
+                            master.send_select_and_operate_command(opendnp3.ControlRelayOutputBlock(opendnp3.ControlCode.LATCH_OFF),
+                                                                    1,  # PULSE/LATCH_ON to index 0 for close
+                                                                    command_callback)
+                            master.send_select_and_operate_command(opendnp3.ControlRelayOutputBlock(opendnp3.ControlCode.LATCH_OFF),
+                                                                    2,  # PULSE/LATCH_ON to index 0 for close
+                                                                    command_callback)
+                            cap_point.value = 1
+                    elif command.get("object") == point.measurement_id and point.value == command.get("value"):
+                        print("Cap check", command.get("object"), command.get("value"))
 
                 pv_point_tmp1 = PointValue(command_type=None, function_code=None, value=0, point_def=0, index=1, op_type=None)
                 pv_point_tmp1.measurement_id = "_5D0562C7-FE25-4FEE-851E-8ADCD69CED3B"

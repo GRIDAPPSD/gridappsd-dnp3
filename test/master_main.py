@@ -101,10 +101,11 @@ def run_master(device_ip_port_config_all, names):
     for master in masters:
         rtu_7_csvfile, rtu_7_writer = build_csv_writers('.', master.name+'.csv', list(range(300)))
         csv_dict[master.name] = {'csv_file':rtu_7_csvfile, 'csv_writer':rtu_7_writer}
-    cim_full_msg = {'simulation_id': 1234, 'timestamp': 0, 'message':{}}
+    cim_full_msg = {'simulation_id': 1234, 'timestamp': 0, 'message':{'measurements':{}}}
     while True:
-        cim_full_msg = {'simulation_id': 1234, 'timestamp': 0, 'message':{'measurements':{}}}
+        # cim_full_msg = {'simulation_id': 1234, 'timestamp': 0, 'message':{'measurements':{}}}
         for master in masters:
+            print("getting CIM from master "+master.name)
             cim_msg = master.soe_handler.get_msg()
             dnp3_msg = master.soe_handler.get_dnp3_msg()
             if len(dnp3_msg.keys()) > 0:
@@ -121,9 +122,9 @@ def run_master(device_ip_port_config_all, names):
             gapps.send('/topic/goss.gridappsd.fim.input.'+str(1234), json.dumps(cim_full_msg))
             msg_count+=1
 
-            print(str(cim_full_msg)[:20])
+            print(master.name+" " +str(cim_full_msg)[:100])
             _log.info(cim_full_msg)
-            time.sleep(30)
+        time.sleep(5)
 
 
     print('\nStopping')
@@ -158,8 +159,11 @@ if __name__ == "__main__":
         names = []
         device_names = device_ip_port_config_all.keys()
         for device_name in device_names:
-            if 'test' not in device_names:
+            if 'RTU' in device_name:
                 names.append(device_name)
+
+    print("Running "+ str(names))
+    time.sleep(2)
 
     device_ip_port_dict = device_ip_port_config_all[names[0]]
     print(device_ip_port_dict)

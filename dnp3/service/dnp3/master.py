@@ -423,7 +423,7 @@ class SOEHandler(opendnp3.ISOEHandler):
         element_attr_to_mrid = model_line_dict[self._name]
         model = model_line_dict[self._name]
         conversion = conversion_dict[self._device]
-        print(conversion)
+        # print(conversion)
 
         ## TODO check for each type seperate binary vs analog
         ## Analog check
@@ -485,7 +485,7 @@ class SOEHandler(opendnp3.ISOEHandler):
         # self._gapps.send('/topic/goss.gridappsd.fim.input.'+str(1234), json.dumps(self._cim_msg))
 
         # self._cim_msg = {"test":time.time()}
-        print(self._cim_msg)
+        print(str(self._cim_msg)[:80])
     def Start(self):
         _log.debug('In SOEHandler.Start')
 
