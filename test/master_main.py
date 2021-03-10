@@ -45,7 +45,7 @@ def on_message(simulation_id, message):
 def run_master(device_ip_port_config_all, names):
     gapps = GridAPPSD(1234, address=utils.get_gridappsd_address(),
                       username=utils.get_gridappsd_user(), password=utils.get_gridappsd_pass())
-    gapps.subscribe('/topic/goss.gridappsd.fim.output.' + str('1234'), on_message)
+
     masters = []
     data_loc = '.'
     if 'Darwin' != platform.system():
@@ -78,6 +78,8 @@ def run_master(device_ip_port_config_all, names):
             global myCIMProcessor
             point_definitions = None
             myCIMProcessor = CIMProcessor(point_definitions,application_1)
+            
+    gapps.subscribe('/topic/goss.gridappsd.fim.output.' + str('1234'), on_message)
 
     SLEEP_SECONDS = 1
     time.sleep(SLEEP_SECONDS)

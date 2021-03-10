@@ -65,8 +65,9 @@ class CIMProcessor(object):
         cap_point3 = PointValue(command_type=None, function_code=None, value=1, point_def=0, index=0, op_type=None)
         cap_point3.measurement_id = "_245E3924-8292-46D5-A11E-C80F7D6EE253"
         cap_list = [cap_point1,cap_point2,cap_point3]
+        reg_point1 = PointValue(command_type=None, function_code=None, value=100, point_def=0, index=0, op_type=None)
         reg_point1.measurement_id = "_D081C22C-D840-4303-8C95-C9151610C9A6"
-        ref_list = [reg_point1]
+        reg_list = [reg_point1]
         # "_5955BE75-5EE5-477A-936F-65EDE5E3B831"
         # master = masters[0]
 
@@ -83,7 +84,15 @@ class CIMProcessor(object):
                 print("command", command)
                 # master = self.master_dict[command["object"]]
                 # print(master)
-                point = cap_point1
+                for point in reg_list:
+                    if command.get("object") == point.measurement_id and point.value != command.get("value"):
+                        point.value = command.get("value")
+                        print("Send reg value "+ str(command.get("value")))
+                        temp_value = int(command.get("value"))
+                        master.send_direct_operate_command(opendnp3.AnalogOutputInt32(temp_value),
+                                                                     0,
+                                                                     command_callback) 
+
                 for point in cap_list:
                     # Capbank
                     if command.get("object") == point.measurement_id and point.value != command.get("value"):
@@ -99,7 +108,7 @@ class CIMProcessor(object):
                             master.send_select_and_operate_command(opendnp3.ControlRelayOutputBlock(opendnp3.ControlCode.LATCH_ON),
                                                                     2,  # PULSE/LATCH_ON to index 2 for open
                                                                     command_callback)
-                            cap_point.value = 0
+                            point.value = 0
                         else:
                             # Will need 5 minutes after open operation for this capbank
                             # Close
@@ -115,7 +124,7 @@ class CIMProcessor(object):
                             master.send_select_and_operate_command(opendnp3.ControlRelayOutputBlock(opendnp3.ControlCode.LATCH_OFF),
                                                                     2,  # PULSE/LATCH_ON to index 0 for close
                                                                     command_callback)
-                            cap_point.value = 1
+                            point.value = 1
                     elif command.get("object") == point.measurement_id and point.value == command.get("value"):
                         print("Cap check", command.get("object"), command.get("value"))
 
