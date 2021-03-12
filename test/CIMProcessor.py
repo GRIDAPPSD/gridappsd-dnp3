@@ -30,6 +30,7 @@ class CIMProcessor(object):
     def __init__(self, point_definitions,master):
         self.point_definitions = point_definitions # TODO
         self._master = master
+        self._pv_points = point_definitions
 
     def process(self, message):
         master = self._master
@@ -130,19 +131,30 @@ class CIMProcessor(object):
 
                 pv_point_tmp1 = PointValue(command_type=None, function_code=None, value=0, point_def=0, index=1, op_type=None)
                 pv_point_tmp1.measurement_id = "_5D0562C7-FE25-4FEE-851E-8ADCD69CED3B"
+                pv_point_tmp1.attribute='PowerElectronicsConnection.p'
+#                 command {'object': '_5D0562C7-FE25-4FEE-851E-8ADCD69CED3B', 'attribute': 'PowerElectronicsConnection.p', 'value': 17.27693169381238}
+# PV 
+# PV 
+# command {'object': '_5D0562C7-FE25-4FEE-851E-8ADCD69CED3B', 'attribute': 'PowerElectronicsConnection.q', 'value': 41.028701716375124}
+                # pv_point_tmp1.measurement_id = "_5D0562C7-FE25-4FEE-851E-8ADCD69CED3B"
                 pv_point_tmp2 = PointValue(command_type=None, function_code=None, value=0, point_def=0, index=2, op_type=None)
                 pv_point_tmp2.measurement_id = "_5D0562C7-FE25-4FEE-851E-8ADCD69CED3B"
-                pv_points = [pv_point_tmp1,pv_point_tmp2]
+                pv_point_tmp2.attribute='PowerElectronicsConnection.q'
+                pv_points=[pv_point_tmp1,pv_point_tmp2]
                 # PV points
-                for point in pv_points:
-                    pass
-                    # master.send_direct_operate_command(opendnp3.AnalogOutputInt32(7),
-                    #                                                  1,
-                    #                                                  command_callback)
+                for point in self._pv_points:
+                    if command.get("object") == point.measurement_id and point.value != command.get("value"):
+                        if command.get("attribute") == point.attribute:
+                            temp_index = point.index
+                            point.value = int(command.get("value"))
+                            print("PV ",point.index, point.value, point.attribute)
+                            master.send_direct_operate_command(opendnp3.AnalogOutputInt32(point.value),
+                                                                        temp_index,
+                                                                        command_callback)
 
-                    # master.send_direct_operate_command(opendnp3.AnalogOutputInt32(14),
-                    #                                                  2,
-                    #                                                  command_callback)
+                        # master.send_direct_operate_command(opendnp3.AnalogOutputInt32(point.value),
+                        #                                                 2,
+                        #                                                 command_callback)
 
         # master.send_select_and_operate_command(opendnp3.ControlRelayOutputBlock(opendnp3.ControlCode.LATCH_ON),
         #                                        1,

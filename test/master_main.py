@@ -76,9 +76,32 @@ def run_master(device_ip_port_config_all, names):
         masters.append(application_1)
         if name == 'RTU1':
             global myCIMProcessor
-            point_definitions = None
-            myCIMProcessor = CIMProcessor(point_definitions,application_1)
+            conversion_dict=os.path.join(data_loc,"conversion_dict_master.json")
+            with open(conversion_dict) as f:
+                conversion_dict = json.load(f)
+            # print(conversion_dict['RTU1']['Analog output'])
+            from dnp3.points import PointValue
+
+
+            pv_point_tmp1 = PointValue(command_type=None, function_code=None, value=0, point_def=0, index=1, op_type=None)
+            pv_point_tmp1.measurement_id = "_5D0562C7-FE25-4FEE-851E-8ADCD69CED3B"
+            pv_point_tmp2 = PointValue(command_type=None, function_code=None, value=0, point_def=0, index=2, op_type=None)
+            pv_point_tmp2.measurement_id = "_5D0562C7-FE25-4FEE-851E-8ADCD69CED3B"
+            pv_points = [pv_point_tmp1,pv_point_tmp2]
+            pv_points =[]
+            for k,v in conversion_dict['RTU1']['Analog output'].items():
+                if 'CIM mRID' in v:
+                    pv_point = PointValue(command_type=None, function_code=None, value=0, point_def=0, index=int(v['index']), op_type=None)
+                    pv_point.measurement_id = v['CIM mRID']
+                    pv_point.attribute = v['CIM attribute']
+                    pv_points.append(pv_point)
+
+            # just build points for PV
             
+            point_definitions = None
+
+            myCIMProcessor = CIMProcessor(pv_points,application_1)
+
     gapps.subscribe('/topic/goss.gridappsd.fim.output.' + str('1234'), on_message)
 
     SLEEP_SECONDS = 1
