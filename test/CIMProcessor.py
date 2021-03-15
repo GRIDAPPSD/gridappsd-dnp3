@@ -146,9 +146,12 @@ class CIMProcessor(object):
                     if command.get("object") == point.measurement_id and point.value != command.get("value"):
                         if command.get("attribute") == point.attribute:
                             temp_index = point.index
-                            point.value = int(command.get("value"))
+                            point.value =float(command.get("value"))
+                            # point.value = int(command.get("value"))
                             print("PV ",point.index, point.value, point.attribute)
-                            master.send_direct_operate_command(opendnp3.AnalogOutputInt32(point.value),
+                            # master.send_direct_operate_command(opendnp3.AnalogOutputInt32(point.value),
+                            # master.send_direct_operate_command(opendnp3.AnalogOutputFloat32(point.value),
+                            master.send_direct_operate_command(opendnp3.AnalogOutputDouble64(point.value),
                                                                         temp_index,
                                                                         command_callback)
 
