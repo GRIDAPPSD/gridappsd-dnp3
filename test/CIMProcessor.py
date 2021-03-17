@@ -61,9 +61,9 @@ class CIMProcessor(object):
 
         cap_point1 = PointValue(command_type=None, function_code=None, value=1, point_def=0, index=0, op_type=None)
         cap_point1.measurement_id = "_5955BE75-5EE5-477A-936F-65EDE5E3B831"
-        cap_point2 = PointValue(command_type=None, function_code=None, value=1, point_def=0, index=0, op_type=None)
+        cap_point2 = PointValue(command_type=None, function_code=None, value=1, point_def=0, index=1, op_type=None)
         cap_point2.measurement_id = "_C1706031-2C1C-464C-8376-6A51FA70B470"
-        cap_point3 = PointValue(command_type=None, function_code=None, value=1, point_def=0, index=0, op_type=None)
+        cap_point3 = PointValue(command_type=None, function_code=None, value=1, point_def=0, index=2, op_type=None)
         cap_point3.measurement_id = "_245E3924-8292-46D5-A11E-C80F7D6EE253"
         cap_list = [cap_point1,cap_point2,cap_point3]
         reg_point1 = PointValue(command_type=None, function_code=None, value=100, point_def=0, index=0, op_type=None)
@@ -101,14 +101,14 @@ class CIMProcessor(object):
                         if open_cmd:
                             # Open
                             master.send_select_and_operate_command(opendnp3.ControlRelayOutputBlock(opendnp3.ControlCode.LATCH_ON),
-                                                                    0,  # PULSE/LATCH_ON to index 0 for open
+                                                                    point.index,  # PULSE/LATCH_ON to index 0 for open
                                                                     command_callback)
-                            master.send_select_and_operate_command(opendnp3.ControlRelayOutputBlock(opendnp3.ControlCode.LATCH_ON),
-                                                                    1,  # PULSE/LATCH_ON to index 1 for open
-                                                                    command_callback)
-                            master.send_select_and_operate_command(opendnp3.ControlRelayOutputBlock(opendnp3.ControlCode.LATCH_ON),
-                                                                    2,  # PULSE/LATCH_ON to index 2 for open
-                                                                    command_callback)
+                            # master.send_select_and_operate_command(opendnp3.ControlRelayOutputBlock(opendnp3.ControlCode.LATCH_ON),
+                            #                                         1,  # PULSE/LATCH_ON to index 1 for open
+                            #                                         command_callback)
+                            # master.send_select_and_operate_command(opendnp3.ControlRelayOutputBlock(opendnp3.ControlCode.LATCH_ON),
+                            #                                         2,  # PULSE/LATCH_ON to index 2 for open
+                            #                                         command_callback)
                             point.value = 0
                         else:
                             # Will need 5 minutes after open operation for this capbank
@@ -147,11 +147,11 @@ class CIMProcessor(object):
                         if command.get("attribute") == point.attribute:
                             temp_index = point.index
                             point.value =float(command.get("value"))
-                            # point.value = int(command.get("value"))
+                            point.value = int(command.get("value"))
                             print("PV ",point.index, point.value, point.attribute)
-                            # master.send_direct_operate_command(opendnp3.AnalogOutputInt32(point.value),
+                            master.send_direct_operate_command(opendnp3.AnalogOutputInt32(point.value),
                             # master.send_direct_operate_command(opendnp3.AnalogOutputFloat32(point.value),
-                            master.send_direct_operate_command(opendnp3.AnalogOutputDouble64(point.value),
+                            # master.send_direct_operate_command(opendnp3.AnalogOutputDouble64(point.value),
                                                                         temp_index,
                                                                         command_callback)
 

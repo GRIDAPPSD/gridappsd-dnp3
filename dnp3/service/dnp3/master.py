@@ -374,14 +374,45 @@ class SOEHandler(opendnp3.ISOEHandler):
                 CIM_msg[mrid] = CIM_value
             CIM_msg[mrid][CIM_attribute] = value * multiplier  # times multiplier
 
+    def update_cim_msg_binary_rtu(self, CIM_msg, index, value, conversion,model):
+        #     print(conversion['Binary input'][index])
+        print('binary jeff', model)
+
+        CIM_phases = conversion[index]['CIM phase']
+        CIM_units = conversion[index]['CIM units']
+        CIM_attribute = conversion[index]['CIM attribute']
+        print('binary phases',CIM_phases, CIM_units)
+        ## Check if multiplier is na or str
+        # multiplier = conversion['Binary input'][index]['Multiplier']
+        
+        print(type(CIM_units),CIM_units)
+        if CIM_units not in model:
+            print(str(CIM_units) +' not in model')
+            return
+        for CIM_phase in CIM_phases:
+            # print(model)
+            # exit(0)
+            mrid = model[CIM_units][CIM_phase]['mrid']
+            CIM_value = {'mrid': mrid}
+            if mrid not in CIM_msg:
+                CIM_msg[mrid] = CIM_value
+            int_value = 1
+            if value:
+                int_value=0
+            CIM_msg[mrid][CIM_attribute] = int_value
+            print('binary',value, int_value)
+
     def update_cim_msg_binary(self, CIM_msg, index, value, conversion,model):
         #     print(conversion['Binary input'][index])
+        print('binary jeff', model)
         if 'Binary input' in conversion and index in conversion['Binary input']:
             CIM_phases = conversion['Binary input'][index]['CIM phase']
             CIM_units = conversion['Binary input'][index]['CIM units']
             CIM_attribute = conversion['Binary input'][index]['CIM attribute']
+            print('binary phases',CIM_phases)
             ## Check if multiplier is na or str
-            multiplier = conversion['Binary input'][index]['Multiplier']
+            # multiplier = conversion['Binary input'][index]['Multiplier']
+            
             print(type(CIM_units),CIM_units)
             if CIM_units not in model:
                 print(str(CIM_units) +' not in model')
@@ -393,7 +424,8 @@ class SOEHandler(opendnp3.ISOEHandler):
                 CIM_value = {'mrid': mrid}
                 if mrid not in CIM_msg:
                     CIM_msg[mrid] = CIM_value
-                CIM_msg[mrid][CIM_attribute] = value * multiplier  # times multiplier
+                CIM_msg[mrid][CIM_attribute] = value 
+                print('binary',value)
 
     def Process(self, info, values):
         """
@@ -444,6 +476,7 @@ class SOEHandler(opendnp3.ISOEHandler):
                     else:
                         _log.debug("No conversion for " + str(index))
                 elif isinstance(value, numbers.Number) and str(float(index)) in conversion['Analog input']:
+                    self._dnp3_msg[index]=value
                     self.update_cim_msg_analog(self._cim_msg, str(float(index)), value, conversion, model)
                     # ## Check if multiplier is na or str
                     # multiplier = 1
@@ -464,17 +497,31 @@ class SOEHandler(opendnp3.ISOEHandler):
                     #     value_type = element_attr_to_mrid[dnp3_attr_name]['type']
                     #     self._cim_msg[element_attr_to_mrid[dnp3_attr_name]['mrid']][value_type] = value * multiplier
                 elif str(index) in conversion['Analog input']:
+                    self._dnp3_msg[index]=value
                     self.update_cim_msg_analog(self._cim_msg, str(index), value, conversion, model)
                 else:
                     print(" No entry for index " + str(index))
             # print(cim_msg)
             ## '/topic/goss.gridappsd.fim.input'
-        elif type(values) == opendnp3.ICollectionIndexedBinaryOutputStatus:
-            for index, value in visitor.index_and_value:
-                print("Jeff SOE Binary", index, value, isinstance(value, numbers.Number))
-                # log_string = 'SOEHandlerSOEHandler.Process {0}\theaderIndex={1}\tdata_type={2}\tindex={3}\tvalue={4}'
-                # _log.debug(log_string.format(info.gv, info.headerIndex, type(values).__name__, index, value))
-                self.update_cim_msg_binary(self._cim_msg, str(float(index)), value, conversion, model) # Untested might work
+        elif type(values) == opendnp3.ICollectionIndexedBinary:
+            if 'RTU' in self._device:  
+                print('Jeff Binary RTU')
+                for index, value in visitor.index_and_value:
+                    self._dnp3_msg[index]=value
+                    conversion_name_index_dict = {v['index']: v for k, v in conversion['Binary input'].items()}
+                    if index in conversion_name_index_dict:
+                        # _log.debug("Conversion for " + str(index))
+                        model = model_line_dict[conversion_name_index_dict[index]['CIM name']]
+                        # self.update_cim_msg_analog_multi_index(self._cim_msg,index,value,conversion_name_index_dict,model)
+                        self.update_cim_msg_binary_rtu(self._cim_msg, index, value, conversion_name_index_dict, model) 
+                    else:
+                        _log.debug("No conversion for " + str(index))
+            else:
+                for index, value in visitor.index_and_value:
+                    print("Jeff SOE Binary", index, value, isinstance(value, numbers.Number))
+                    # log_string = 'SOEHandlerSOEHandler.Process {0}\theaderIndex={1}\tdata_type={2}\tindex={3}\tvalue={4}'
+                    # _log.debug(log_string.format(info.gv, info.headerIndex, type(values).__name__, index, value))
+                    self.update_cim_msg_binary(self._cim_msg, str(float(index)), value, conversion, model) # Untested might work
         else:
             for index, value in visitor.index_and_value:
                 print("Jeff SOE Other", index, value, isinstance(value, numbers.Number))
@@ -485,7 +532,7 @@ class SOEHandler(opendnp3.ISOEHandler):
         # self._gapps.send('/topic/goss.gridappsd.fim.input.'+str(1234), json.dumps(self._cim_msg))
 
         # self._cim_msg = {"test":time.time()}
-        print(str(self._cim_msg)[:80])
+        print(str(self._cim_msg)[:200])
     def Start(self):
         _log.debug('In SOEHandler.Start')
 
