@@ -14,6 +14,7 @@ from CIMProcessor import CIMProcessor
 from dnp3.master import MyMaster, MyLogger, AppChannelListener, SOEHandler, MasterApplication
 from dnp3.dnp3_to_cim import CIMMapping
 from pydnp3 import opendnp3, openpal
+from dnp3.points import PointValue
 
 from gridappsd.topics import simulation_output_topic, simulation_input_topic
 from gridappsd import GridAPPSD, DifferenceBuilder, utils
@@ -76,9 +77,29 @@ def run_master(device_ip_port_config_all, names):
         masters.append(application_1)
         if name == 'RTU1':
             global myCIMProcessor
-            point_definitions = None
-            myCIMProcessor = CIMProcessor(point_definitions,application_1)
+            conversion_dict=os.path.join(data_loc,"conversion_dict_master.json")
+            with open(conversion_dict) as f:
+                conversion_dict = json.load(f)
+           
+            # pv_point_tmp1 = PointValue(command_type=None, function_code=None, value=0, point_def=0, index=1, op_type=None)
+            # pv_point_tmp1.measurement_id = "_5D0562C7-FE25-4FEE-851E-8ADCD69CED3B"
+            # pv_point_tmp2 = PointValue(command_type=None, function_code=None, value=0, point_def=0, index=2, op_type=None)
+            # pv_point_tmp2.measurement_id = "_5D0562C7-FE25-4FEE-851E-8ADCD69CED3B"
+            # pv_points = [pv_point_tmp1,pv_point_tmp2]
+            pv_points =[]
+            for k,v in conversion_dict['RTU1']['Analog output'].items():
+                if 'CIM mRID' in v:
+                    pv_point = PointValue(command_type=None, function_code=None, value=0, point_def=0, index=int(v['index']), op_type=None)
+                    pv_point.measurement_id = v['CIM mRID']
+                    pv_point.attribute = v['CIM attribute']
+                    pv_points.append(pv_point)
+
+            # just build points for PV
             
+            point_definitions = None
+
+            myCIMProcessor = CIMProcessor(pv_points,application_1)
+
     gapps.subscribe('/topic/goss.gridappsd.fim.output.' + str('1234'), on_message)
 
     SLEEP_SECONDS = 1
@@ -100,9 +121,6 @@ def run_master(device_ip_port_config_all, names):
     #     master.fast_scan_all.Demand()
     msg_count=0
     csv_dict = {}
-    for master in masters:
-        rtu_7_csvfile, rtu_7_writer = build_csv_writers('.', master.name+'.csv', list(range(300)))
-        csv_dict[master.name] = {'csv_file':rtu_7_csvfile, 'csv_writer':rtu_7_writer}
     cim_full_msg = {'simulation_id': 1234, 'timestamp': 0, 'message':{'measurements':{}}}
     while True:
         # cim_full_msg = {'simulation_id': 1234, 'timestamp': 0, 'message':{'measurements':{}}}
@@ -110,9 +128,13 @@ def run_master(device_ip_port_config_all, names):
             print("getting CIM from master "+master.name)
             cim_msg = master.soe_handler.get_msg()
             dnp3_msg = master.soe_handler.get_dnp3_msg()
+            # print('keys',list(dnp3_msg.keys()))
+            if master.name not in csv_dict:
+                rtu_7_csvfile, rtu_7_writer = build_csv_writers('.', master.name+'.csv', list(dnp3_msg.keys()))
+                csv_dict[master.name] = {'csv_file':rtu_7_csvfile, 'csv_writer':rtu_7_writer}
             if len(dnp3_msg.keys()) > 0:
-                max_index = max(dnp3_msg.keys())
-                values = [dnp3_msg[k] for k in range(max_index)]
+                # max_index = max(dnp3_msg.keys())
+                values = [dnp3_msg[k] for k in dnp3_msg.keys()]
                 csv_dict[master.name]['csv_writer'].writerow(np.insert(values,0, msg_count))
                 csv_dict[master.name]['csv_file'].flush()
             else:
@@ -126,7 +148,7 @@ def run_master(device_ip_port_config_all, names):
 
             print(master.name+" " +str(cim_full_msg)[:100])
             _log.info(cim_full_msg)
-        time.sleep(5)
+        time.sleep(10)
 
 
     print('\nStopping')
@@ -162,6 +184,10 @@ if __name__ == "__main__":
         device_names = device_ip_port_config_all.keys()
         for device_name in device_names:
             if 'RTU' in device_name:
+                names.append(device_name)
+            if 'shark' in device_name[:5]:
+                names.append(device_name)
+            if 'capbank' in device_name:
                 names.append(device_name)
 
     print("Running "+ str(names))
