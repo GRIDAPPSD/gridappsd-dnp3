@@ -46,15 +46,18 @@ class OutstationApplication(opendnp3.IOutstationApplication):
     def __init__(self,
                  LOCAL_IP="0.0.0.0",
                  PORT=20000,
-                 DNP3_ADDR=1, config={}):
+                 DNP3_ADDR=1,
+                 LocalAddr=1,
+                 config={}):
         self.DNP3_ADDR = DNP3_ADDR
+        self.LocalAddr= LocalAddr
         self.config = config
         super(OutstationApplication, self).__init__()
 
         _log.debug('Configuring the DNP3 stack.')
         self.stack_config = self.configure_stack()
         self.stack_config.link.LocalAddr = self.DNP3_ADDR  ## Was 10
-        # self.stack_config.link.RemoteAddr = 1  ## TODO
+        # self.stack_config.link.RemoteAddr = self.LocalAddr  ## TODO
 
         _log.debug('Configuring the outstation database.')
         self.configure_database(self.stack_config.dbConfig)

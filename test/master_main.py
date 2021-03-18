@@ -11,7 +11,7 @@ sys.path.append("../dnp3/service")
 
 from CIMProcessor import CIMProcessor
 
-from dnp3.master import MyMaster, MyLogger, AppChannelListener, SOEHandler, MasterApplication
+from dnp3.master import MyMaster, MyLogger, AppChannelListener, SOEHandler, SOEHandlerSimple, MasterApplication
 from dnp3.dnp3_to_cim import CIMMapping
 from pydnp3 import opendnp3, openpal
 from dnp3.points import PointValue
@@ -29,8 +29,8 @@ def build_csv_writers(folder, filename, column_names):
         os.remove(_file)
     file_handle = open(_file, 'a')
     csv_writer = csv.writer(file_handle, delimiter=',', quotechar='|', quoting=csv.QUOTE_MINIMAL)
-    csv_writer.writerow(column_names)
-    # csv_writer.writerow(['epoch time'] + column_names)
+    # csv_writer.writerow(column_names)
+    csv_writer.writerow(['time'] + column_names)
     return file_handle, csv_writer
 
 def on_message(simulation_id, message):
@@ -70,6 +70,7 @@ def run_master(device_ip_port_config_all, names):
                                 log_handler=MyLogger(),
                                 listener=AppChannelListener(),
                                 soe_handler=SOEHandler(object_name, convertion_type, dnp3_to_cim),
+                                # soe_handler=SOEHandlerSimple(),
                                 master_application=MasterApplication())
         application_1.name=name
         # application.channel.SetLogFilters(openpal.LogFilters(opendnp3.levels.ALL_COMMS))
@@ -86,13 +87,14 @@ def run_master(device_ip_port_config_all, names):
             # pv_point_tmp2 = PointValue(command_type=None, function_code=None, value=0, point_def=0, index=2, op_type=None)
             # pv_point_tmp2.measurement_id = "_5D0562C7-FE25-4FEE-851E-8ADCD69CED3B"
             # pv_points = [pv_point_tmp1,pv_point_tmp2]
-            pv_points =[]
-            for k,v in conversion_dict['RTU1']['Analog output'].items():
-                if 'CIM mRID' in v:
-                    pv_point = PointValue(command_type=None, function_code=None, value=0, point_def=0, index=int(v['index']), op_type=None)
-                    pv_point.measurement_id = v['CIM mRID']
-                    pv_point.attribute = v['CIM attribute']
-                    pv_points.append(pv_point)
+            pv_points = []
+            if 'RTU1' in conversion_dict and 'Analog output' in conversion_dict['RTU1']:
+                for k, v in conversion_dict['RTU1']['Analog output'].items():
+                    if 'CIM mRID' in v:
+                        pv_point = PointValue(command_type=None, function_code=None, value=0, point_def=0, index=int(v['index']), op_type=None)
+                        pv_point.measurement_id = v['CIM mRID']
+                        pv_point.attribute = v['CIM attribute']
+                        pv_points.append(pv_point)
 
             # just build points for PV
             
@@ -121,17 +123,18 @@ def run_master(device_ip_port_config_all, names):
     #     master.fast_scan_all.Demand()
     msg_count=0
     csv_dict = {}
-    cim_full_msg = {'simulation_id': 1234, 'timestamp': 0, 'message':{'measurements':{}}}
+    cim_full_msg = {'simulation_id': 1234, 'timestamp': str(int(time.time())), 'message':{'measurements':{}}}
     while True:
         # cim_full_msg = {'simulation_id': 1234, 'timestamp': 0, 'message':{'measurements':{}}}
         for master in masters:
             print("getting CIM from master "+master.name)
             cim_msg = master.soe_handler.get_msg()
-            dnp3_msg = master.soe_handler.get_dnp3_msg()
+            dnp3_msg = master.soe_handler.get_dnp3_msg_AI()
             # print('keys',list(dnp3_msg.keys()))
             if master.name not in csv_dict:
-                rtu_7_csvfile, rtu_7_writer = build_csv_writers('.', master.name+'.csv', list(dnp3_msg.keys()))
+                rtu_7_csvfile, rtu_7_writer = build_csv_writers('.', master.name+'_AI.csv', list(dnp3_msg.keys()))
                 csv_dict[master.name] = {'csv_file':rtu_7_csvfile, 'csv_writer':rtu_7_writer}
+                csv_dict[master.name]['csv_writer'].writerow(['time']+master.soe_handler.get_dnp3_msg_AI_header())
             if len(dnp3_msg.keys()) > 0:
                 # max_index = max(dnp3_msg.keys())
                 values = [dnp3_msg[k] for k in dnp3_msg.keys()]
@@ -143,12 +146,13 @@ def run_master(device_ip_port_config_all, names):
             # print(cim_msg)
             # message['message']['measurements']
             cim_full_msg['message']['measurements'].update(cim_msg)
+            cim_full_msg['timestamp'] = str(int(time.time()))
             gapps.send('/topic/goss.gridappsd.fim.input.'+str(1234), json.dumps(cim_full_msg))
             msg_count+=1
 
             print(master.name+" " +str(cim_full_msg)[:100])
             _log.info(cim_full_msg)
-        time.sleep(10)
+        time.sleep(1)
 
 
     print('\nStopping')

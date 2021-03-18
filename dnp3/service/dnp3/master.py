@@ -39,6 +39,7 @@ import time
 import yaml
 import json
 import numpy as np
+import threading
 
 from gridappsd.topics import simulation_output_topic, simulation_input_topic
 from gridappsd import GridAPPSD, DifferenceBuilder, utils
@@ -311,15 +312,30 @@ class SOEHandler(opendnp3.ISOEHandler):
         #                   username=utils.get_gridappsd_user(), password=utils.get_gridappsd_pass())
         # self._gapps.subscribe('/topic/goss.gridappsd.fim.input.'+str(1234), on_message)
         self._cim_msg = {}
-        self._dnp3_msg = {}
+        self._dnp3_msg_AI = {}
+        self._dnp3_msg_AI_header = []
+        self._dnp3_msg_BI = {}
+        self._dnp3_msg_BI_header = []
+        self.lock = threading.Lock()
 
         super(SOEHandler, self).__init__()
 
     def get_msg(self):
-        return self._cim_msg
+        with self.lock:
+            # time.sleep(2)
+            return self._cim_msg
 
-    def get_dnp3_msg(self):
-        return self._dnp3_msg
+    def get_dnp3_msg_AI(self):
+        with self.lock:
+            return self._dnp3_msg_AI
+
+    def get_dnp3_msg_AI_header(self):
+        with self.lock:
+            return self._dnp3_msg_AI_header
+
+    def get_dnp3_msg_BI(self):
+        with self.lock:
+            return self._dnp3_msg_BI
 
     def update_cim_msg_analog_multi_index(self, CIM_msg, index, value, conversion, model):
         CIM_phase = conversion[index]['CIM phase']
@@ -455,84 +471,94 @@ class SOEHandler(opendnp3.ISOEHandler):
         element_attr_to_mrid = model_line_dict[self._name]
         model = model_line_dict[self._name]
         conversion = conversion_dict[self._device]
+        conversion_name_index_dict = {v['index']: v for k, v in conversion['Analog input'].items()}
         # print(conversion)
 
         ## TODO check for each type seperate binary vs analog
         ## Analog check
-        print(type(values))
-        if type(values) == opendnp3.ICollectionIndexedAnalog:
-            for index, value in visitor.index_and_value:
-                print("Jeff SOE", index, value, isinstance(value, numbers.Number))
-                # log_string = 'SOEHandlerSOEHandler.Process {0}\theaderIndex={1}\tdata_type={2}\tindex={3}\tvalue={4}'
-                # _log.debug(log_string.format(info.gv, info.headerIndex, type(values).__name__, index, value))
-                if 'RTU' in self._device:  
-                    print('Jeff RTU')
-                    self._dnp3_msg[index]=value
-                    conversion_name_index_dict = {v['index']: v for k, v in conversion['Analog input'].items()}
-                    if index in conversion_name_index_dict:
-                        # _log.debug("Conversion for " + str(index))
-                        model = model_line_dict[conversion_name_index_dict[index]['CIM name']]
-                        self.update_cim_msg_analog_multi_index(self._cim_msg,index,value,conversion_name_index_dict,model)
-                    else:
-                        _log.debug("No conversion for " + str(index))
-                elif isinstance(value, numbers.Number) and str(float(index)) in conversion['Analog input']:
-                    self._dnp3_msg[index]=value
-                    self.update_cim_msg_analog(self._cim_msg, str(float(index)), value, conversion, model)
-                    # ## Check if multiplier is na or str
-                    # multiplier = 1
-                    # conversion_for_index = conversion['Analog input'][str(float(index))]
-                    # if 'Multiplier' in conversion_for_index:
-                    #     multiplier = conversion_for_index['Multiplier']
-                    #     if type(multiplier) != str:
-                    #         multiplier = conversion_for_index['Multiplier']
-                    # else:
-                    #     print("No multiplier")
-                    # dnp3_attr_name = conversion_for_index['type']
-                    # if dnp3_attr_name in element_attr_to_mrid:
-                    #     # print(dnp3_attr_name,element_attr_to_mrid[dnp3_attr_name])
-                    #     if element_attr_to_mrid[dnp3_attr_name]['mrid'] not in self._cim_msg:
-                    #         self._cim_msg[element_attr_to_mrid[dnp3_attr_name]['mrid']] = {'magnitude': 0,
-                    #                                                                  'angle': 0,
-                    #                                                                  'mrid': element_attr_to_mrid[dnp3_attr_name]['mrid']}
-                    #     value_type = element_attr_to_mrid[dnp3_attr_name]['type']
-                    #     self._cim_msg[element_attr_to_mrid[dnp3_attr_name]['mrid']][value_type] = value * multiplier
-                elif str(index) in conversion['Analog input']:
-                    self._dnp3_msg[index]=value
-                    self.update_cim_msg_analog(self._cim_msg, str(index), value, conversion, model)
-                else:
-                    print(" No entry for index " + str(index))
-            # print(cim_msg)
-            ## '/topic/goss.gridappsd.fim.input'
-        elif type(values) == opendnp3.ICollectionIndexedBinary:
-            if 'RTU' in self._device:  
-                print('Jeff Binary RTU')
+        with self.lock:
+            print(type(values))
+            print(visitor)
+            if type(values) == opendnp3.ICollectionIndexedAnalog:
+                print(dir(values))
+                # values.ForeachItem()
                 for index, value in visitor.index_and_value:
-                    self._dnp3_msg[index]=value
-                    conversion_name_index_dict = {v['index']: v for k, v in conversion['Binary input'].items()}
-                    if index in conversion_name_index_dict:
-                        # _log.debug("Conversion for " + str(index))
-                        model = model_line_dict[conversion_name_index_dict[index]['CIM name']]
-                        # self.update_cim_msg_analog_multi_index(self._cim_msg,index,value,conversion_name_index_dict,model)
-                        self.update_cim_msg_binary_rtu(self._cim_msg, index, value, conversion_name_index_dict, model) 
-                    else:
-                        _log.debug("No conversion for " + str(index))
-            else:
-                for index, value in visitor.index_and_value:
-                    print("Jeff SOE Binary", index, value, isinstance(value, numbers.Number))
+                    print("Jeff SOE IndexedAnalog", index, value, isinstance(value, numbers.Number))
                     # log_string = 'SOEHandlerSOEHandler.Process {0}\theaderIndex={1}\tdata_type={2}\tindex={3}\tvalue={4}'
                     # _log.debug(log_string.format(info.gv, info.headerIndex, type(values).__name__, index, value))
-                    self.update_cim_msg_binary(self._cim_msg, str(float(index)), value, conversion, model) # Untested might work
-        else:
-            for index, value in visitor.index_and_value:
-                print("Jeff SOE Other", index, value, isinstance(value, numbers.Number))
-                # log_string = 'SOEHandlerSOEHandler.Process {0}\theaderIndex={1}\tdata_type={2}\tindex={3}\tvalue={4}'
-                # _log.debug(log_string.format(info.gv, info.headerIndex, type(values).__name__, index, value))
+                    if not self._dnp3_msg_AI_header:
+                        # self._dnp3_msg_AI_header = {v['index']: v['CIM name'] for k, v in conversion['Analog input'].items()}
+                        self._dnp3_msg_AI_header = [v['CIM name']+'_'+v['CIM units'] for k, v in conversion['Analog input'].items()]
+                    if 'RTU' in self._device:
+                        print('Jeff RTU')
+                        self._dnp3_msg_AI[index]=value
 
-        # self._cim_msg = cim_msg
-        # self._gapps.send('/topic/goss.gridappsd.fim.input.'+str(1234), json.dumps(self._cim_msg))
+                        if index in conversion_name_index_dict:
+                            # _log.debug("Conversion for " + str(index))
+                            model = model_line_dict[conversion_name_index_dict[index]['CIM name']]
+                            self.update_cim_msg_analog_multi_index(self._cim_msg,index,value,conversion_name_index_dict,model)
+                        else:
+                            _log.debug("No conversion for " + str(index))
+                            print("No conversion for " + str(index))
+                    elif isinstance(value, numbers.Number) and str(float(index)) in conversion['Analog input']:
+                        self._dnp3_msg_AI[index]=value
+                        self.update_cim_msg_analog(self._cim_msg, str(float(index)), value, conversion, model)
+                        # ## Check if multiplier is na or str
+                        # multiplier = 1
+                        # conversion_for_index = conversion['Analog input'][str(float(index))]
+                        # if 'Multiplier' in conversion_for_index:
+                        #     multiplier = conversion_for_index['Multiplier']
+                        #     if type(multiplier) != str:
+                        #         multiplier = conversion_for_index['Multiplier']
+                        # else:
+                        #     print("No multiplier")
+                        # dnp3_attr_name = conversion_for_index['type']
+                        # if dnp3_attr_name in element_attr_to_mrid:
+                        #     # print(dnp3_attr_name,element_attr_to_mrid[dnp3_attr_name])
+                        #     if element_attr_to_mrid[dnp3_attr_name]['mrid'] not in self._cim_msg:
+                        #         self._cim_msg[element_attr_to_mrid[dnp3_attr_name]['mrid']] = {'magnitude': 0,
+                        #                                                                  'angle': 0,
+                        #                                                                  'mrid': element_attr_to_mrid[dnp3_attr_name]['mrid']}
+                        #     value_type = element_attr_to_mrid[dnp3_attr_name]['type']
+                        #     self._cim_msg[element_attr_to_mrid[dnp3_attr_name]['mrid']][value_type] = value * multiplier
+                    elif str(index) in conversion['Analog input']:
+                        self._dnp3_msg_AI[index]=value
+                        self.update_cim_msg_analog(self._cim_msg, str(index), value, conversion, model)
+                    else:
+                        print(" No entry for index " + str(index))
+                # print(cim_msg)
+                ## '/topic/goss.gridappsd.fim.input'
+            elif type(values) == opendnp3.ICollectionIndexedBinary:
+                if 'RTU' in self._device and 'Binary input' in conversion:
+                    print('Jeff Binary RTU')
+                    for index, value in visitor.index_and_value:
+                        self._dnp3_msg_BI[index]=value
+                        conversion_name_index_dict = {v['index']: v for k, v in conversion['Binary input'].items()}
+                        if index in conversion_name_index_dict:
+                            # _log.debug("Conversion for " + str(index))
+                            model = model_line_dict[conversion_name_index_dict[index]['CIM name']]
+                            # self.update_cim_msg_analog_multi_index(self._cim_msg,index,value,conversion_name_index_dict,model)
+                            self.update_cim_msg_binary_rtu(self._cim_msg, index, value, conversion_name_index_dict, model)
+                        else:
+                            _log.debug("No conversion for " + str(index))
+                else:
+                    for index, value in visitor.index_and_value:
+                        print("Jeff SOE Binary", index, value, isinstance(value, numbers.Number))
+                        # log_string = 'SOEHandlerSOEHandler.Process {0}\theaderIndex={1}\tdata_type={2}\tindex={3}\tvalue={4}'
+                        # _log.debug(log_string.format(info.gv, info.headerIndex, type(values).__name__, index, value))
+                        self.update_cim_msg_binary(self._cim_msg, str(float(index)), value, conversion, model) # Untested might work
+            else:
+                for index, value in visitor.index_and_value:
+                    print("Jeff SOE Other", index, value, isinstance(value, numbers.Number))
+                    # log_string = 'SOEHandlerSOEHandler.Process {0}\theaderIndex={1}\tdata_type={2}\tindex={3}\tvalue={4}'
+                    # _log.debug(log_string.format(info.gv, info.headerIndex, type(values).__name__, index, value))
 
-        # self._cim_msg = {"test":time.time()}
+            # self._cim_msg = cim_msg
+            # self._gapps.send('/topic/goss.gridappsd.fim.input.'+str(1234), json.dumps(self._cim_msg))
+
+            # self._cim_msg = {"test":time.time()}
         print(str(self._cim_msg)[:200])
+
     def Start(self):
         _log.debug('In SOEHandler.Start')
 
