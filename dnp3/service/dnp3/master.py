@@ -337,6 +337,10 @@ class SOEHandler(opendnp3.ISOEHandler):
         with self.lock:
             return self._dnp3_msg_BI
 
+    def get_dnp3_msg_BI_header(self):
+        with self.lock:
+            return self._dnp3_msg_BI_header
+
     def update_cim_msg_analog_multi_index(self, CIM_msg, index, value, conversion, model):
         CIM_phase = conversion[index]['CIM phase']
         CIM_units = conversion[index]['CIM units']
@@ -471,7 +475,11 @@ class SOEHandler(opendnp3.ISOEHandler):
         element_attr_to_mrid = model_line_dict[self._name]
         model = model_line_dict[self._name]
         conversion = conversion_dict[self._device]
-        conversion_name_index_dict = {v['index']: v for k, v in conversion['Analog input'].items()}
+        print(self._device)
+        if self._device == 'Shark':
+            conversion_name_index_dict = {v['Index']: v for k, v in conversion['Analog input'].items()}
+        else:
+            conversion_name_index_dict = {v['index']: v for k, v in conversion['Analog input'].items()}
         # print(conversion)
 
         ## TODO check for each type seperate binary vs analog
@@ -488,7 +496,10 @@ class SOEHandler(opendnp3.ISOEHandler):
                     # _log.debug(log_string.format(info.gv, info.headerIndex, type(values).__name__, index, value))
                     if not self._dnp3_msg_AI_header:
                         # self._dnp3_msg_AI_header = {v['index']: v['CIM name'] for k, v in conversion['Analog input'].items()}
-                        self._dnp3_msg_AI_header = [v['CIM name']+'_'+v['CIM units'] for k, v in conversion['Analog input'].items()]
+                        if self._device == 'Shark': 
+                            self._dnp3_msg_AI_header = [v['Type'] for k, v in conversion['Analog input'].items()]
+                        else:
+                            self._dnp3_msg_AI_header = [v['CIM name']+'_'+v['CIM units'] for k, v in conversion['Analog input'].items()]
                     if 'RTU' in self._device:
                         print('Jeff RTU')
                         self._dnp3_msg_AI[index]=value

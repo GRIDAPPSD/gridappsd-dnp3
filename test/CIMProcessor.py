@@ -4,6 +4,7 @@ from dnp3.dnp3_to_cim import CIMMapping
 from pydnp3 import opendnp3, openpal
 import yaml
 from dnp3.points import PointValue
+import threading
 
 def collection_callback(result=None):
     """
@@ -31,6 +32,24 @@ class CIMProcessor(object):
         self.point_definitions = point_definitions # TODO
         self._master = master
         self._pv_points = point_definitions
+        self._dnp3_msg_AO = {}
+        self._dnp3_msg_BO = {}
+        self._dnp3_msg_AO_header = []
+        self._dnp3_msg_BO_header = []
+        self.lock = threading.Lock()
+
+    
+    def get_dnp3_msg_AO(self):
+        with self.lock:
+            return self._dnp3_msg_AO
+
+    def get_dnp3_msg_AO_header(self):
+        with self.lock:
+            return self._dnp3_msg_AO_header
+
+    def get_dnp3_msg_BO(self):
+        with self.lock:
+            return self._dnp3_msg_BO
 
     def process(self, message):
         master = self._master
@@ -80,85 +99,99 @@ class CIMProcessor(object):
             print("input Jeff")
             control_values = json_msg["input"]["message"]["forward_differences"]
             print(control_values)
+            with self.lock:
+                for command in control_values:
+                    print("command", command)
+                    # master = self.master_dict[command["object"]]
+                    # print(master)
+                    self._dnp3_msg_AO = {}
+                    self._dnp3_msg_BO = {}
+                    for point in reg_list:
+                        if command.get("object") == point.measurement_id :
+                            self._dnp3_msg_AO[point.index] = point.value
+                        if command.get("object") == point.measurement_id and point.value != command.get("value"):
+                            point.value = command.get("value")
+                            self._dnp3_msg_AO[point.index] = point.value
+                            print("Send reg value "+ str(command.get("value")))
+                            temp_value = int(command.get("value"))
+                            master.send_direct_operate_command(opendnp3.AnalogOutputInt32(temp_value),
+                                                                        point.index,
+                                                                        command_callback) 
 
-            for command in control_values:
-                print("command", command)
-                # master = self.master_dict[command["object"]]
-                # print(master)
-                for point in reg_list:
-                    if command.get("object") == point.measurement_id and point.value != command.get("value"):
-                        point.value = command.get("value")
-                        print("Send reg value "+ str(command.get("value")))
-                        temp_value = int(command.get("value"))
-                        master.send_direct_operate_command(opendnp3.AnalogOutputInt32(temp_value),
-                                                                     0,
-                                                                     command_callback) 
-
-                for point in cap_list:
-                    # Capbank
-                    if command.get("object") == point.measurement_id and point.value != command.get("value"):
-                        open_cmd = command.get("value") == 0
-                        if open_cmd:
-                            # Open
-                            master.send_select_and_operate_command(opendnp3.ControlRelayOutputBlock(opendnp3.ControlCode.LATCH_ON),
-                                                                    point.index,  # PULSE/LATCH_ON to index 0 for open
-                                                                    command_callback)
-                            # master.send_select_and_operate_command(opendnp3.ControlRelayOutputBlock(opendnp3.ControlCode.LATCH_ON),
-                            #                                         1,  # PULSE/LATCH_ON to index 1 for open
-                            #                                         command_callback)
-                            # master.send_select_and_operate_command(opendnp3.ControlRelayOutputBlock(opendnp3.ControlCode.LATCH_ON),
-                            #                                         2,  # PULSE/LATCH_ON to index 2 for open
-                            #                                         command_callback)
-                            point.value = 0
-                        else:
-                            # Will need 5 minutes after open operation for this capbank
-                            # Close
-                            # master.send_select_and_operate_command(opendnp3.ControlRelayOutputBlock(opendnp3.ControlCode.LATCH_ON),
-                            #                                                     0, # PULSE/LATCH_ON to index 0 for close
-                            #                                                     command_callback)
-                            master.send_select_and_operate_command(opendnp3.ControlRelayOutputBlock(opendnp3.ControlCode.LATCH_OFF),
-                                                                    0,  # PULSE/LATCH_ON to index 0 for close
-                                                                    command_callback)
-                            master.send_select_and_operate_command(opendnp3.ControlRelayOutputBlock(opendnp3.ControlCode.LATCH_OFF),
-                                                                    1,  # PULSE/LATCH_ON to index 0 for close
-                                                                    command_callback)
-                            master.send_select_and_operate_command(opendnp3.ControlRelayOutputBlock(opendnp3.ControlCode.LATCH_OFF),
-                                                                    2,  # PULSE/LATCH_ON to index 0 for close
-                                                                    command_callback)
-                            point.value = 1
-                    elif command.get("object") == point.measurement_id and point.value == command.get("value"):
-                        print("Cap check", command.get("object"), command.get("value"))
-
-                pv_point_tmp1 = PointValue(command_type=None, function_code=None, value=0, point_def=0, index=1, op_type=None)
-                pv_point_tmp1.measurement_id = "_5D0562C7-FE25-4FEE-851E-8ADCD69CED3B"
-                pv_point_tmp1.attribute='PowerElectronicsConnection.p'
-#                 command {'object': '_5D0562C7-FE25-4FEE-851E-8ADCD69CED3B', 'attribute': 'PowerElectronicsConnection.p', 'value': 17.27693169381238}
-# PV 
-# PV 
-# command {'object': '_5D0562C7-FE25-4FEE-851E-8ADCD69CED3B', 'attribute': 'PowerElectronicsConnection.q', 'value': 41.028701716375124}
-                # pv_point_tmp1.measurement_id = "_5D0562C7-FE25-4FEE-851E-8ADCD69CED3B"
-                pv_point_tmp2 = PointValue(command_type=None, function_code=None, value=0, point_def=0, index=2, op_type=None)
-                pv_point_tmp2.measurement_id = "_5D0562C7-FE25-4FEE-851E-8ADCD69CED3B"
-                pv_point_tmp2.attribute='PowerElectronicsConnection.q'
-                pv_points=[pv_point_tmp1,pv_point_tmp2]
-                # PV points
-                for point in self._pv_points:
-                    if command.get("object") == point.measurement_id and point.value != command.get("value"):
-                        if command.get("attribute") == point.attribute:
-                            temp_index = point.index
-                            point.value =float(command.get("value"))
-                            point.value = int(command.get("value"))
-                            print("PV ",point.index, point.value, point.attribute)
-                            master.send_direct_operate_command(opendnp3.AnalogOutputInt32(point.value),
-                            # master.send_direct_operate_command(opendnp3.AnalogOutputFloat32(point.value),
-                            # master.send_direct_operate_command(opendnp3.AnalogOutputDouble64(point.value),
-                                                                        temp_index,
+                    for point in cap_list:
+                        # Capbank
+                        if command.get("object") == point.measurement_id :
+                            self._dnp3_msg_BO[point.index] = point.value
+                        if command.get("object") == point.measurement_id and point.value != command.get("value"):
+                            open_cmd = command.get("value") == 0
+                            if open_cmd:
+                                # Open
+                                master.send_select_and_operate_command(opendnp3.ControlRelayOutputBlock(opendnp3.ControlCode.LATCH_ON),
+                                                                        point.index,  # PULSE/LATCH_ON to index 0 for open
                                                                         command_callback)
+                                self._dnp3_msg_BO[point.index] = point.value
+                                # master.send_select_and_operate_command(opendnp3.ControlRelayOutputBlock(opendnp3.ControlCode.LATCH_ON),
+                                #                                         1,  # PULSE/LATCH_ON to index 1 for open
+                                #                                         command_callback)
+                                # master.send_select_and_operate_command(opendnp3.ControlRelayOutputBlock(opendnp3.ControlCode.LATCH_ON),
+                                #                                         2,  # PULSE/LATCH_ON to index 2 for open
+                                #                                         command_callback)
+                                point.value = 0
+                            else:
+                                # Will need 5 minutes after open operation for this capbank
+                                # Close
+                                # master.send_select_and_operate_command(opendnp3.ControlRelayOutputBlock(opendnp3.ControlCode.LATCH_ON),
+                                #                                                     0, # PULSE/LATCH_ON to index 0 for close
+                                #                                                     command_callback)
+                                # master.send_select_and_operate_command(opendnp3.ControlRelayOutputBlock(opendnp3.ControlCode.LATCH_OFF),
+                                #                                         0,  # PULSE/LATCH_ON to index 0 for close
+                                #                                         command_callback)
+                                # master.send_select_and_operate_command(opendnp3.ControlRelayOutputBlock(opendnp3.ControlCode.LATCH_OFF),
+                                #                                         1,  # PULSE/LATCH_ON to index 0 for close
+                                #                                         command_callback)
+                                # master.send_select_and_operate_command(opendnp3.ControlRelayOutputBlock(opendnp3.ControlCode.LATCH_OFF),
+                                #                                         2,  # PULSE/LATCH_ON to index 0 for close
+                                #                                         command_callback)
+                                master.send_select_and_operate_command(opendnp3.ControlRelayOutputBlock(opendnp3.ControlCode.LATCH_OFF),
+                                                                        point.index,  # PULSE/LATCH_ON to index 0 for open
+                                                                        command_callback)
+                                self._dnp3_msg_BO[point.index] = point.value
+                                
+                                point.value = 1
+                        elif command.get("object") == point.measurement_id and point.value == command.get("value"):
+                            print("Cap check", command.get("object"), command.get("value"))
 
-                        # master.send_direct_operate_command(opendnp3.AnalogOutputInt32(point.value),
-                        #                                                 2,
-                        #                                                 command_callback)
+                    pv_point_tmp1 = PointValue(command_type=None, function_code=None, value=0, point_def=0, index=1, op_type=None)
+                    pv_point_tmp1.measurement_id = "_5D0562C7-FE25-4FEE-851E-8ADCD69CED3B"
+                    pv_point_tmp1.attribute='PowerElectronicsConnection.p'
+    #                 command {'object': '_5D0562C7-FE25-4FEE-851E-8ADCD69CED3B', 'attribute': 'PowerElectronicsConnection.p', 'value': 17.27693169381238}
+    # PV 
+    # PV 
+    # command {'object': '_5D0562C7-FE25-4FEE-851E-8ADCD69CED3B', 'attribute': 'PowerElectronicsConnection.q', 'value': 41.028701716375124}
+                    # pv_point_tmp1.measurement_id = "_5D0562C7-FE25-4FEE-851E-8ADCD69CED3B"
+                    pv_point_tmp2 = PointValue(command_type=None, function_code=None, value=0, point_def=0, index=2, op_type=None)
+                    pv_point_tmp2.measurement_id = "_5D0562C7-FE25-4FEE-851E-8ADCD69CED3B"
+                    pv_point_tmp2.attribute='PowerElectronicsConnection.q'
+                    pv_points=[pv_point_tmp1,pv_point_tmp2]
+                    # PV points
+                    for point in self._pv_points:
+                        if command.get("object") == point.measurement_id and point.value != command.get("value"):
+                            if command.get("attribute") == point.attribute:
+                                temp_index = point.index
+                                point.value =float(command.get("value"))
+                                point.value = int(command.get("value"))
+                                self._dnp3_msg_AO[temp_index] = point.value
+                                print("PV ",point.index, point.value, point.attribute)
+                                master.send_direct_operate_command(opendnp3.AnalogOutputInt32(point.value),
+                                # master.send_direct_operate_command(opendnp3.AnalogOutputFloat32(point.value),
+                                # master.send_direct_operate_command(opendnp3.AnalogOutputDouble64(point.value),
+                                                                            temp_index,
+                                                                            command_callback)
 
-        # master.send_select_and_operate_command(opendnp3.ControlRelayOutputBlock(opendnp3.ControlCode.LATCH_ON),
-        #                                        1,
-        #                                        command_callback)
+                            # master.send_direct_operate_command(opendnp3.AnalogOutputInt32(point.value),
+                            #                                                 2,
+                            #                                                 command_callback)
+
+            # master.send_select_and_operate_command(opendnp3.ControlRelayOutputBlock(opendnp3.ControlCode.LATCH_ON),
+            #                                        1,
+            #                                        command_callback)

@@ -129,17 +129,47 @@ def run_master(device_ip_port_config_all, names):
         for master in masters:
             print("getting CIM from master "+master.name)
             cim_msg = master.soe_handler.get_msg()
-            dnp3_msg = master.soe_handler.get_dnp3_msg_AI()
+            dnp3_msg_AI = master.soe_handler.get_dnp3_msg_AI()
+            dnp3_msg_AO = master.soe_handler.get_dnp3_msg_BI()
+            if master.name =='RTU1':
+                dnp3_msg_AO = myCIMProcessor.get_dnp3_msg_AO()
+                dnp3_msg_BO = myCIMProcessor.get_dnp3_msg_BO()
             # print('keys',list(dnp3_msg.keys()))
-            if master.name not in csv_dict:
-                rtu_7_csvfile, rtu_7_writer = build_csv_writers('.', master.name+'_AI.csv', list(dnp3_msg.keys()))
-                csv_dict[master.name] = {'csv_file':rtu_7_csvfile, 'csv_writer':rtu_7_writer}
-                csv_dict[master.name]['csv_writer'].writerow(['time']+master.soe_handler.get_dnp3_msg_AI_header())
-            if len(dnp3_msg.keys()) > 0:
+            if master.name+'AI' not in csv_dict:
+                rtu_7_csvfile, rtu_7_writer = build_csv_writers('.', master.name+'_AI.csv', list(dnp3_msg_AI.keys()))
+                csv_dict[master.name+'AI'] = {'csv_file':rtu_7_csvfile, 'csv_writer':rtu_7_writer}
+                csv_dict[master.name+'AI']['csv_writer'].writerow(['time']+master.soe_handler.get_dnp3_msg_AI_header())
+            if master.name+'BI' not in csv_dict:                
+                rtu_7_csvfile, rtu_7_writer = build_csv_writers('.', master.name+'_BI.csv', list(dnp3_msg_AI.keys()))
+                csv_dict[master.name+'BI'] = {'csv_file':rtu_7_csvfile, 'csv_writer':rtu_7_writer}
+                # csv_dict[master.name+'BI']['csv_writer'].writerow(['time']+master.soe_handler.get_dnp3_msg_BI_header())
+            if master.name =='RTU1':
+                if master.name+'AO' not in csv_dict:
+                    rtu_7_csvfile, rtu_7_writer = build_csv_writers('.', master.name+'_AO.csv', list(dnp3_msg_AO.keys()))
+                    csv_dict[master.name+'AO'] = {'csv_file':rtu_7_csvfile, 'csv_writer':rtu_7_writer}
+                    # csv_dict[master.name+'AO']['csv_writer'].writerow(['time']+myCIMProcessor.get_dnp3_msg_AO_header())
+                if master.name+'BO' not in csv_dict:
+                    rtu_7_csvfile, rtu_7_writer = build_csv_writers('.', master.name+'_BO.csv', list(dnp3_msg_AO.keys()))
+                    csv_dict[master.name+'BO'] = {'csv_file':rtu_7_csvfile, 'csv_writer':rtu_7_writer}
+                    # csv_dict[master.name+'BO']['csv_writer'].writerow(['time']+myCIMProcessor.get_dnp3_msg_AO_header())
+            if master.name =='RTU1':
+                if len(dnp3_msg_AO.keys()) > 0:
+                    # max_index = max(dnp3_msg.keys())
+                    values = [dnp3_msg_AO[k] for k in dnp3_msg_AO.keys()]
+                    csv_dict[master.name+'AO']['csv_writer'].writerow(np.insert(values,0, msg_count))
+                    csv_dict[master.name+'AO']['csv_file'].flush()
+                if len(dnp3_msg_BO.keys()) > 0:
+                    # max_index = max(dnp3_msg.keys())
+                    values = [dnp3_msg_BO[k] for k in dnp3_msg_BO.keys()]
+                    csv_dict[master.name+'BO']['csv_writer'].writerow(np.insert(values,0, msg_count))
+                    csv_dict[master.name+'BO']['csv_file'].flush()
+
+
+            if len(dnp3_msg_AI.keys()) > 0:
                 # max_index = max(dnp3_msg.keys())
-                values = [dnp3_msg[k] for k in dnp3_msg.keys()]
-                csv_dict[master.name]['csv_writer'].writerow(np.insert(values,0, msg_count))
-                csv_dict[master.name]['csv_file'].flush()
+                values = [dnp3_msg_AI[k] for k in dnp3_msg_AI.keys()]
+                csv_dict[master.name+'AI']['csv_writer'].writerow(np.insert(values,0, msg_count))
+                csv_dict[master.name+'AI']['csv_file'].flush()
             else:
                 print("no data yet")
 
@@ -191,8 +221,8 @@ if __name__ == "__main__":
                 names.append(device_name)
             if 'shark' in device_name[:5]:
                 names.append(device_name)
-            if 'capbank' in device_name:
-                names.append(device_name)
+            # if 'capbank' in device_name:
+            #     names.append(device_name)
 
     print("Running "+ str(names))
     time.sleep(2)
