@@ -36,6 +36,27 @@ class CIMProcessor(object):
         self._dnp3_msg_BO = {}
         self._dnp3_msg_AO_header = []
         self._dnp3_msg_BO_header = []
+
+        cap_point1 = PointValue(command_type=None, function_code=None, value=1, point_def=0, index=0, op_type=None)
+        cap_point1.measurement_id = "_5955BE75-5EE5-477A-936F-65EDE5E3B831"
+        cap_point2 = PointValue(command_type=None, function_code=None, value=1, point_def=0, index=1, op_type=None)
+        cap_point2.measurement_id = "_C1706031-2C1C-464C-8376-6A51FA70B470"
+        cap_point3 = PointValue(command_type=None, function_code=None, value=1, point_def=0, index=2, op_type=None)
+        cap_point3.measurement_id = "_245E3924-8292-46D5-A11E-C80F7D6EE253"
+        self._cap_list = [cap_point1,cap_point2,cap_point3]
+        reg_point1 = PointValue(command_type=None, function_code=None, value=0, point_def=0, index=0, op_type=None)
+        reg_point1.measurement_id = "_D081C22C-D840-4303-8C95-C9151610C9A6"
+        self._reg_list = [reg_point1]
+
+        for point in self._cap_list:
+            self._dnp3_msg_BO[point.index] = point.value
+
+        for point in self._reg_list:
+            self._dnp3_msg_AO[point.index] = point.value
+
+        for point in self._pv_points:
+            self._dnp3_msg_AO[point.index] = point.value
+
         self.lock = threading.Lock()
 
     
@@ -78,16 +99,6 @@ class CIMProcessor(object):
 # {"bankName":"s1","size":"1","bankPhases":"ABC","tankName":[""],"endNumber":[2],"endPhase":["ABC"],"rtcName":["s1"],"mRID":["_D081C22C-D840-4303-8C95-C9151610C9A6"],"monitoredPhase":["A"],"TapChanger.tculControlMode":["volt"],"highStep":[16],"lowStep":[-16],"neutralStep":[0],"normalStep":[0],"TapChanger.controlEnabled":[true],"lineDropCompensation":[true],"ltcFlag":[true],"RegulatingControl.enabled":[true],"RegulatingControl.discrete":[true],"RegulatingControl.mode":["voltage"],"step":[-8],"targetValue":[123.0000],"targetDeadband":[2.0000],"limitVoltage":[0.0000],"stepVoltageIncrement":[0.6250],"neutralU":[6927.6000],"initialDelay":[30.0000],"subsequentDelay":[2.0000],"lineDropR":[7.0000],"lineDropX":[0.0000],"reverseLineDropR":[0.0000],"reverseLineDropX":[0.0000],"ctRating":[300.0000],"ctRatio":[1500.0000],"ptRatio":[57.7300]}
 # ],
 
-        cap_point1 = PointValue(command_type=None, function_code=None, value=1, point_def=0, index=0, op_type=None)
-        cap_point1.measurement_id = "_5955BE75-5EE5-477A-936F-65EDE5E3B831"
-        cap_point2 = PointValue(command_type=None, function_code=None, value=1, point_def=0, index=1, op_type=None)
-        cap_point2.measurement_id = "_C1706031-2C1C-464C-8376-6A51FA70B470"
-        cap_point3 = PointValue(command_type=None, function_code=None, value=1, point_def=0, index=2, op_type=None)
-        cap_point3.measurement_id = "_245E3924-8292-46D5-A11E-C80F7D6EE253"
-        cap_list = [cap_point1,cap_point2,cap_point3]
-        reg_point1 = PointValue(command_type=None, function_code=None, value=100, point_def=0, index=0, op_type=None)
-        reg_point1.measurement_id = "_D081C22C-D840-4303-8C95-C9151610C9A6"
-        reg_list = [reg_point1]
         # "_5955BE75-5EE5-477A-936F-65EDE5E3B831"
         # master = masters[0]
 
@@ -106,7 +117,7 @@ class CIMProcessor(object):
                     # print(master)
                     self._dnp3_msg_AO = {}
                     self._dnp3_msg_BO = {}
-                    for point in reg_list:
+                    for point in self._reg_list:
                         if command.get("object") == point.measurement_id :
                             self._dnp3_msg_AO[point.index] = point.value
                         if command.get("object") == point.measurement_id and point.value != command.get("value"):
@@ -118,7 +129,7 @@ class CIMProcessor(object):
                                                                         point.index,
                                                                         command_callback) 
 
-                    for point in cap_list:
+                    for point in self._cap_list:
                         # Capbank
                         if command.get("object") == point.measurement_id :
                             self._dnp3_msg_BO[point.index] = point.value

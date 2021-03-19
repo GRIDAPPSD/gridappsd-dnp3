@@ -149,7 +149,7 @@ def run_master(device_ip_port_config_all, names):
                     csv_dict[master.name+'AO'] = {'csv_file':rtu_7_csvfile, 'csv_writer':rtu_7_writer}
                     # csv_dict[master.name+'AO']['csv_writer'].writerow(['time']+myCIMProcessor.get_dnp3_msg_AO_header())
                 if master.name+'BO' not in csv_dict:
-                    rtu_7_csvfile, rtu_7_writer = build_csv_writers('.', master.name+'_BO.csv', list(dnp3_msg_AO.keys()))
+                    rtu_7_csvfile, rtu_7_writer = build_csv_writers('.', master.name+'_BO.csv', list(dnp3_msg_BO.keys()))
                     csv_dict[master.name+'BO'] = {'csv_file':rtu_7_csvfile, 'csv_writer':rtu_7_writer}
                     # csv_dict[master.name+'BO']['csv_writer'].writerow(['time']+myCIMProcessor.get_dnp3_msg_AO_header())
             if master.name =='RTU1':
