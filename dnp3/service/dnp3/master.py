@@ -342,6 +342,10 @@ class SOEHandler(opendnp3.ISOEHandler):
             return self._dnp3_msg_BI_header
 
     def update_cim_msg_analog_multi_index(self, CIM_msg, index, value, conversion, model):
+        # model_line_dict['irradiance']
+        if ['CIM name'] == 'irradiance':
+            CIM_msg['irradiance'] = value
+            return
         CIM_phase = conversion[index]['CIM phase']
         CIM_units = conversion[index]['CIM units']
         CIM_attribute = conversion[index]['CIM attribute']
