@@ -343,8 +343,9 @@ class SOEHandler(opendnp3.ISOEHandler):
 
     def update_cim_msg_analog_multi_index(self, CIM_msg, index, value, conversion, model):
         # model_line_dict['irradiance']
-        if ['CIM name'] == 'irradiance':
+        if conversion[index]['CIM name'] == 'irradiance':
             CIM_msg['irradiance'] = value
+            print('irradiance', value)
             return
         CIM_phase = conversion[index]['CIM phase']
         CIM_units = conversion[index]['CIM units']
@@ -489,13 +490,13 @@ class SOEHandler(opendnp3.ISOEHandler):
         ## TODO check for each type seperate binary vs analog
         ## Analog check
         with self.lock:
-            print(type(values))
-            print(visitor)
+            # print(type(values))
+            # print(visitor)
             if type(values) == opendnp3.ICollectionIndexedAnalog:
-                print(dir(values))
+                # print(dir(values))
                 # values.ForeachItem()
                 for index, value in visitor.index_and_value:
-                    print("Jeff SOE IndexedAnalog", index, value, isinstance(value, numbers.Number))
+                    # print("Jeff SOE IndexedAnalog", index, value, isinstance(value, numbers.Number))
                     # log_string = 'SOEHandlerSOEHandler.Process {0}\theaderIndex={1}\tdata_type={2}\tindex={3}\tvalue={4}'
                     # _log.debug(log_string.format(info.gv, info.headerIndex, type(values).__name__, index, value))
                     if not self._dnp3_msg_AI_header:
@@ -505,12 +506,14 @@ class SOEHandler(opendnp3.ISOEHandler):
                         else:
                             self._dnp3_msg_AI_header = [v['CIM name']+'_'+v['CIM units'] for k, v in conversion['Analog input'].items()]
                     if 'RTU' in self._device:
-                        print('Jeff RTU')
+                        # print('Jeff RTU')
                         self._dnp3_msg_AI[index]=value
 
                         if index in conversion_name_index_dict:
                             # _log.debug("Conversion for " + str(index))
                             model = model_line_dict[conversion_name_index_dict[index]['CIM name']]
+                            if int(index) == 129:
+                                print(129, model, value)
                             self.update_cim_msg_analog_multi_index(self._cim_msg,index,value,conversion_name_index_dict,model)
                         else:
                             _log.debug("No conversion for " + str(index))
@@ -545,7 +548,7 @@ class SOEHandler(opendnp3.ISOEHandler):
                 ## '/topic/goss.gridappsd.fim.input'
             elif type(values) == opendnp3.ICollectionIndexedBinary:
                 if 'RTU' in self._device and 'Binary input' in conversion:
-                    print('Jeff Binary RTU')
+                    # print('Jeff Binary RTU')
                     for index, value in visitor.index_and_value:
                         self._dnp3_msg_BI[index]=value
                         conversion_name_index_dict = {v['index']: v for k, v in conversion['Binary input'].items()}
@@ -558,13 +561,14 @@ class SOEHandler(opendnp3.ISOEHandler):
                             _log.debug("No conversion for " + str(index))
                 else:
                     for index, value in visitor.index_and_value:
-                        print("Jeff SOE Binary", index, value, isinstance(value, numbers.Number))
+                        # print("Jeff SOE Binary", index, value, isinstance(value, numbers.Number))
                         # log_string = 'SOEHandlerSOEHandler.Process {0}\theaderIndex={1}\tdata_type={2}\tindex={3}\tvalue={4}'
                         # _log.debug(log_string.format(info.gv, info.headerIndex, type(values).__name__, index, value))
                         self.update_cim_msg_binary(self._cim_msg, str(float(index)), value, conversion, model) # Untested might work
             else:
                 for index, value in visitor.index_and_value:
-                    print("Jeff SOE Other", index, value, isinstance(value, numbers.Number))
+                    pass
+                    # print("Jeff SOE Other", index, value, isinstance(value, numbers.Number))
                     # log_string = 'SOEHandlerSOEHandler.Process {0}\theaderIndex={1}\tdata_type={2}\tindex={3}\tvalue={4}'
                     # _log.debug(log_string.format(info.gv, info.headerIndex, type(values).__name__, index, value))
 
