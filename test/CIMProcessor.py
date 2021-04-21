@@ -5,6 +5,10 @@ from pydnp3 import opendnp3, openpal
 import yaml
 from dnp3.points import PointValue
 import threading
+import time
+import logging
+_log = logging.getLogger(__name__)
+
 
 def collection_callback(result=None):
     """
@@ -56,6 +60,8 @@ class CIMProcessor(object):
 
         for point in self._pv_points:
             self._dnp3_msg_AO[point.index] = point.value
+        
+        print(self._dnp3_msg_AO)
 
         self.lock = threading.Lock()
 
@@ -110,12 +116,14 @@ class CIMProcessor(object):
             print("input Jeff")
             control_values = json_msg["input"]["message"]["forward_differences"]
             print(control_values)
+            _log.info("control_values ", control_values)
             with self.lock:
                 for command in control_values:
+                    # time.sleep(.5)
                     print("command", command)
                     # master = self.master_dict[command["object"]]
                     # print(master)
-                    self._dnp3_msg_AO = {}
+                    # self._dnp3_msg_AO = {}
                     self._dnp3_msg_BO = {}
                     for point in self._reg_list:
                         if command.get("object") == point.measurement_id :
@@ -130,11 +138,12 @@ class CIMProcessor(object):
                                                                         command_callback) 
 
                     for point in self._cap_list:
+                        time.sleep(.02)
                         # Capbank
                         if command.get("object") == point.measurement_id :
                             self._dnp3_msg_BO[point.index] = point.value
                         if command.get("object") == point.measurement_id and point.value != command.get("value"):
-                            open_cmd = command.get("value") == 0
+                            open_cmd = command.get("value") != 0
                             if open_cmd:
                                 # Open
                                 master.send_select_and_operate_command(opendnp3.ControlRelayOutputBlock(opendnp3.ControlCode.LATCH_ON),
@@ -186,13 +195,14 @@ class CIMProcessor(object):
                     pv_points=[pv_point_tmp1,pv_point_tmp2]
                     # PV points
                     for point in self._pv_points:
-                        if command.get("object") == point.measurement_id and point.value != command.get("value"):
+                        if command.get("object") == point.measurement_id : # and point.value != command.get("value"):
                             if command.get("attribute") == point.attribute:
                                 temp_index = point.index
-                                point.value =float(command.get("value"))
+                                # point.value =float(command.get("value"))
                                 point.value = int(command.get("value"))
                                 self._dnp3_msg_AO[temp_index] = point.value
                                 print("PV ",point.index, point.value, point.attribute)
+                                _log.info("PV ",point.index, point.value, point.attribute)
                                 master.send_direct_operate_command(opendnp3.AnalogOutputInt32(point.value),
                                 # master.send_direct_operate_command(opendnp3.AnalogOutputFloat32(point.value),
                                 # master.send_direct_operate_command(opendnp3.AnalogOutputDouble64(point.value),
