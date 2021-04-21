@@ -123,14 +123,16 @@ def run_master(device_ip_port_config_all, names):
     #     master.fast_scan_all.Demand()
     msg_count=0
     csv_dict = {}
-    cim_full_msg = {'simulation_id': 1234, 'timestamp': str(int(time.time())), 'message':{'measurements':{}}}
+    cim_full_msg = {'simulation_id': 1234, 'timestamp': str(int(time.time())), 'irradiance':0.0, 'message':{'measurements':{}}}
+    starttime = time.time()
     while True:
+        current_time = time.time()
         # cim_full_msg = {'simulation_id': 1234, 'timestamp': 0, 'message':{'measurements':{}}}
         for master in masters:
             print("getting CIM from master "+master.name)
             cim_msg = master.soe_handler.get_msg()
             dnp3_msg_AI = master.soe_handler.get_dnp3_msg_AI()
-            dnp3_msg_AO = master.soe_handler.get_dnp3_msg_BI()
+            dnp3_msg_BI = master.soe_handler.get_dnp3_msg_BI()
             if master.name =='RTU1':
                 dnp3_msg_AO = myCIMProcessor.get_dnp3_msg_AO()
                 dnp3_msg_BO = myCIMProcessor.get_dnp3_msg_BO()
@@ -140,7 +142,7 @@ def run_master(device_ip_port_config_all, names):
                 csv_dict[master.name+'AI'] = {'csv_file':rtu_7_csvfile, 'csv_writer':rtu_7_writer}
                 csv_dict[master.name+'AI']['csv_writer'].writerow(['time']+master.soe_handler.get_dnp3_msg_AI_header())
             if master.name+'BI' not in csv_dict:                
-                rtu_7_csvfile, rtu_7_writer = build_csv_writers('.', master.name+'_BI.csv', list(dnp3_msg_AI.keys()))
+                rtu_7_csvfile, rtu_7_writer = build_csv_writers('.', master.name+'_BI.csv', list(dnp3_msg_BI.keys()))
                 csv_dict[master.name+'BI'] = {'csv_file':rtu_7_csvfile, 'csv_writer':rtu_7_writer}
                 # csv_dict[master.name+'BI']['csv_writer'].writerow(['time']+master.soe_handler.get_dnp3_msg_BI_header())
             if master.name =='RTU1':
@@ -154,21 +156,22 @@ def run_master(device_ip_port_config_all, names):
                     # csv_dict[master.name+'BO']['csv_writer'].writerow(['time']+myCIMProcessor.get_dnp3_msg_AO_header())
             if master.name =='RTU1':
                 if len(dnp3_msg_AO.keys()) > 0:
-                    # max_index = max(dnp3_msg.keys())
                     values = [dnp3_msg_AO[k] for k in dnp3_msg_AO.keys()]
-                    csv_dict[master.name+'AO']['csv_writer'].writerow(np.insert(values,0, msg_count))
+                    csv_dict[master.name+'AO']['csv_writer'].writerow(np.insert(values,0, current_time))
                     csv_dict[master.name+'AO']['csv_file'].flush()
                 if len(dnp3_msg_BO.keys()) > 0:
-                    # max_index = max(dnp3_msg.keys())
                     values = [dnp3_msg_BO[k] for k in dnp3_msg_BO.keys()]
-                    csv_dict[master.name+'BO']['csv_writer'].writerow(np.insert(values,0, msg_count))
+                    csv_dict[master.name+'BO']['csv_writer'].writerow(np.insert(values,0, current_time))
                     csv_dict[master.name+'BO']['csv_file'].flush()
 
-
+            if master.name =='RTU1':
+                if len(dnp3_msg_BI.keys()) > 0:
+                    values = [int(dnp3_msg_BI[k]) for k in dnp3_msg_BI.keys()]
+                    csv_dict[master.name+'BI']['csv_writer'].writerow(np.insert(values, 0, current_time))
+                    csv_dict[master.name+'BI']['csv_file'].flush()
             if len(dnp3_msg_AI.keys()) > 0:
-                # max_index = max(dnp3_msg.keys())
                 values = [dnp3_msg_AI[k] for k in dnp3_msg_AI.keys()]
-                csv_dict[master.name+'AI']['csv_writer'].writerow(np.insert(values,0, msg_count))
+                csv_dict[master.name+'AI']['csv_writer'].writerow(np.insert(values,0, current_time))
                 csv_dict[master.name+'AI']['csv_file'].flush()
             else:
                 print("no data yet")
@@ -177,12 +180,18 @@ def run_master(device_ip_port_config_all, names):
             # message['message']['measurements']
             cim_full_msg['message']['measurements'].update(cim_msg)
             cim_full_msg['timestamp'] = str(int(time.time()))
-            gapps.send('/topic/goss.gridappsd.fim.input.'+str(1234), json.dumps(cim_full_msg))
-            msg_count+=1
+            
+        with open('meas_map.json', 'w') as outfile:
+            json.dump(cim_full_msg, outfile, indent=2)
+        gapps.send('/topic/goss.gridappsd.fim.input.'+str(1234), json.dumps(cim_full_msg))
+        msg_count+=1
+        print("message count "+ str(msg_count))
+        _log.info("message count "+ str(msg_count))
 
-            print(master.name+" " +str(cim_full_msg)[:100])
-            _log.info(cim_full_msg)
-        time.sleep(1)
+        print(master.name+" " +str(cim_full_msg)[:100])
+        _log.info(cim_full_msg)
+        # time.sleep(2)
+        time.sleep(60.0 - ((time.time() - starttime) % 60.0))
 
 
     print('\nStopping')
@@ -225,7 +234,7 @@ if __name__ == "__main__":
             #     names.append(device_name)
 
     print("Running "+ str(names))
-    time.sleep(2)
+    time.sleep(1)
 
     device_ip_port_dict = device_ip_port_config_all[names[0]]
     print(device_ip_port_dict)
