@@ -1,9 +1,19 @@
 
-GridAPPS-D DNP3 master is an application service to integrate GridAPPS-D
+The GridAPPS-D DNP3 master python scripts is the starting point for a service to integrate the GridAPPS-D message bus and application with DNP3 outstations points.
+The master_main script creates masters to DNP3 outstation devices and converts their DNP3 point values to CIM messages for use with an application built for the GridAPPS-D platform.
 
-DNP3 processing for Use Case 3
+#. Work to be done
+#. The setup steps
+#. Running the script
+#. The Classes and scripts discriptions
 
-This paper covers the work documentation and work done for connecting to DNP3 outstation devices and converting their signals to CIM messages for use with an application built for the GridAPPS-D platform. *Mention OpenDNP3*
+This paper covers the work documentation and work done for connecting to DNP3 outstation devices and converting their signals to CIM messages for use with an application built for the GridAPPS-D platform.
+
+OpenDNP3 docs
+^^^^^^^^^^^^^
+
+The website for OpenDNP3 is at https://dnp3.github.io/
+The API documentation is at https://dnp3.github.io/docs/cpp/3.0.0/index.html
 
 Current Issues TODO-WIP
 ^^^^^^^^^^^^^^^^^^^^^^^
@@ -148,6 +158,7 @@ Description: The build_conversion_dicts.py builds the conversion dictionaries us
 
 Master class in master.py
 Class to connect to DNP3 outstations. Actual processing of messages is done by a SOEHandler.
+https://dnp3.github.io/docs/guide/3.0.0/api/masters/#isoehandler
 
 Constructor
 Description:

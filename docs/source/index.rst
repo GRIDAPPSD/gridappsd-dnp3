@@ -139,8 +139,8 @@ This received CIM message was processed and the below plot shows the state of th
 
 |switch1|
 
-Masters
--------
+Master Service
+--------------
 
 .. include:: master_service.rst
 
