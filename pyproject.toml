@@ -1,5 +1,5 @@
 [tool.poetry]
-name = "grijdappsd-dnp3-oustation"
+name = "gridappsd-dnp3-outstation"
 version = "1.2.0"
 description = "GridAPPS-D DNP3 Service"
 authors = ["A. Singh"]
