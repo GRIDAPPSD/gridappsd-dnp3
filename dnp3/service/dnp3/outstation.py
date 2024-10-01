@@ -35,6 +35,8 @@
 import os
 import logging
 import json
+
+import pydnp3.asiodnp3
 from pydnp3 import opendnp3, openpal, asiopal, asiodnp3
 
 _log = logging.getLogger(__name__)
@@ -103,6 +105,8 @@ class DNP3Outstation(opendnp3.IOutstationApplication):
         self.listener = None
         self.channel = None
         self.command_handler = None
+        self.db_config: pydnp3.asiodnp3.DatabaseConfig | None = None
+
         #self.port_config = port_file
 
         #with open("/tmp/port.json", 'r') as f:
@@ -115,7 +119,7 @@ class DNP3Outstation(opendnp3.IOutstationApplication):
         _log.debug(str(self.outstation_config))
 
         #for m in self.port_config:
-        self.stack_config = asiodnp3.OutstationStackConfig(opendnp3.DatabaseSizes.AllTypes(self.outstation_config.get('database_sizes', 10000)))
+        self.stack_config = asiodnp3.OutstationStackConfig(opendnp3.DatabaseSizes.AllTypes(self.outstation_config.get('database_sizes', 50)))
         _log.debug(self.stack_config)
         self.stack_config.outstation.eventBufferConfig = opendnp3.EventBufferConfig.AllTypes(self.outstation_config.get('event_buffers', 10))
         self.stack_config.outstation.params.allowUnsolicited = self.outstation_config.get('allow_unsolicited', False)
@@ -130,9 +134,11 @@ class DNP3Outstation(opendnp3.IOutstationApplication):
         _log.debug('Configuring the DNP3 Outstation database.')
         db_config = self.stack_config.dbConfig
         _log.debug(db_config)
+        self.db_config = self.stack_config.dbConfig
+
+        #self.db_handler = DBHandler(self.stack_config)
+        _log.info("Initializing all points during startup of the outstation.")
         for point in self.get_agent().point_definitions.all_points():
-            #print("Agent is", self.get_agent())
-            #_log.debug("Adding Point: {}".format(point))
             if point.point_type == 'Analog Input':
                 cfg = db_config.analog[int(point.index)]
             elif point.point_type == 'Binary Input':
@@ -379,16 +385,17 @@ class OutstationCommandHandler(opendnp3.ICommandHandler):
     """
     def __init__(self,dnp3Object):
         super(OutstationCommandHandler, self).__init__()
+        _log.debug('In DNP3 OutstationCommandHandler.__init__')
         self.dnp3Object = dnp3Object
 
     def Start(self):
         # This debug line is too chatty...
-        # _log.debug('In DNP3 OutstationCommandHandler.Start')
+        _log.debug('In DNP3 OutstationCommandHandler.Start')
         pass
 
     def End(self):
         # This debug line is too chatty...
-        # _log.debug('In DNP3 OutstationCommandHandler.End')
+        _log.debug('In DNP3 OutstationCommandHandler.End')
         pass
 
     def Select(self, command, index):
@@ -400,6 +407,7 @@ class OutstationCommandHandler(opendnp3.ICommandHandler):
         :param index: int
         :return: CommandStatus
         """
+        _log.debug('In DNP3 OutstationCommandHandler.Select')
         return self.dnp3Object.get_agent().process_point_value('Select', command, index, None)
 
     def Operate(self, command, index, op_type):
@@ -411,6 +419,7 @@ class OutstationCommandHandler(opendnp3.ICommandHandler):
         :param op_type: OperateType
         :return: CommandStatus
         """
+        _log.debug('In DNP3 OutstationCommandHandler.Operate')
         return self.dnp3Object.get_agent().process_point_value('Operate', command, index, op_type)
 
 
@@ -430,6 +439,7 @@ class AppChannelListener(asiodnp3.IChannelListener):
 
         :param state: A ChannelState.
         """
+        _log.debug(_log.debug('In DNP3 AppChannelListener.OnStateChange'))
         self.dnp3Object.get_agent().publish_outstation_status(str(state))
         #self.get_agent().publish_outstation_status(str(state))
 

@@ -55,6 +55,7 @@ class DNP3Mapping():
         self.file_dict = map_file
         self.processor_point_def = PointDefinitions()
         self.outstation = DNP3Outstation('',0,'')
+        self._create_dnp3_object_map()
 
     # create_message_updates is called in new_start_service.py (in the new on_message method).
     def create_message_updates(self, headers, message):
