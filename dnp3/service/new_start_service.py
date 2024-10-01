@@ -3,10 +3,15 @@ import logging
 import numbers
 import sys
 import json
+from copy import deepcopy
+from typing import Any, TypeVar, ClassVar
+import pydnp3
 #import pydevd;pydevd.settrace(suspend=False) # Uncomment For Debugging on other Threads
 
 from time import sleep
 
+import yaml
+from pydnp3.opendnp3 import OperateType
 from yaml import safe_load
 
 from dnp3.cim_to_dnp3 import DNP3Mapping
@@ -26,7 +31,7 @@ _log = logging.getLogger(__name__)
 
 class Processor(object):
 
-    def __init__(self, point_definitions,simulation_id, gridappsd_obj):
+    def __init__(self, point_definitions: PointDefinitions, topic_to_publish_to: str, gridappsd_obj: GridAPPSD):
         self.point_definitions = point_definitions
         self._current_point_values = {}
         self._selector_block_points = {}
@@ -34,9 +39,17 @@ class Processor(object):
         self._gapps = gridappsd_obj
         self._diff = DifferenceBuilder(simulation_id)
         # self._close_diff = DifferenceBuilder(simulation_id)
-        self._publish_to_topic = simulation_input_topic(simulation_id)
+        self._publish_to_topic = topic_to_publish_to
         self.processor_point_def = PointDefinitions()
-        self.outstation = DNP3Outstation('', 0, '')
+        self._outstation: DNP3Outstation | None = None
+
+    @property
+    def outstation(self) -> DNP3Outstation:
+        return self._outstation
+
+    @outstation.setter
+    def outstation(self, value: DNP3Outstation):
+        self._outstation = value
 
     def publish_outstation_status(self, status):
         _log.debug(status)
@@ -52,14 +65,21 @@ class Processor(object):
         @return: A CommandStatus value.
         """
         try:
-
             _log.debug("cmdtype={},command={},index={},optype={}".format(command_type, command, index, op_type))
+
+            # This will raise DNP3Exception if the point is not found within the points_definition.  Though operate
+            # commands are not within that context so we capture the exception and do some other stuff with it.
             point_value = self.point_definitions.point_value_for_command(command_type, command, index, op_type)
+
             """ Generating CIM messages  for CROB and Analog type commands from Master. """
             print("cmdtype={},command={},index={},optype={}".format(command_type, command, index, op_type))
+
             if 'Control' in str(command):
                 _log.debug("command_code={},command_code={},command_ontime={}".format(command.status, command.functionCode, command.onTimeMS))
+
+
                 for point in self.outstation.get_agent().point_definitions.all_points():
+
                     if point.name in str(point_value.point_def) and point.index ==index  and point.attribute == 'ShuntCompensator.sections':
                         if 'ON' in str(command.functionCode):
                             self._diff.clear()
@@ -67,11 +87,13 @@ class Processor(object):
                             msg = self._diff.get_message()
                             self._gapps.send(self._publish_to_topic, json.dumps(msg))
                             print(json.dumps(msg))
+                            self._outstation.apply_update(value=pydnp3.opendnp3.BinaryOutputStatus(1), index=index)
                         else:
                             self._diff.clear()
                             self._diff.add_difference(point.measurement_id, point.attribute, 0, 1)
                             msg = self._diff.get_message()
                             self._gapps.send(self._publish_to_topic, json.dumps(msg))
+                            self._outstation.apply_update(value=pydnp3.opendnp3.BinaryOutputStatus(0), index=index)
                             print(json.dumps(msg))
                     if point.name in str(point_value.point_def) and  point.index == index and point.attribute == 'Switch.open':
                         if 'ON' in str(command.functionCode):
@@ -80,6 +102,7 @@ class Processor(object):
                             msg = self._diff.get_message()
                             self._gapps.send(self._publish_to_topic, json.dumps(msg))
                             print(json.dumps(msg))
+                            self._outstation.apply_update(value=pydnp3.opendnp3.BinaryOutputStatus(1), index=index)
 
                         else:
                             self._diff.clear()
@@ -87,6 +110,7 @@ class Processor(object):
                             msg = self._diff.get_message()
                             self._gapps.send(self._publish_to_topic, json.dumps(msg))
                             print(json.dumps(msg))
+                            self._outstation.apply_update(value=pydnp3.opendnp3.BinaryOutputStatus(0), index=index)
                     if point.name in str(point_value.point_def) and point.index == index and  point.attribute == 'RegulatingControl.Mode':
                         if 'ON' in str(command.functionCode):
                             self._diff.clear()
@@ -94,6 +118,7 @@ class Processor(object):
                             msg = self._diff.get_message()
                             self._gapps.send(self._publish_to_topic, json.dumps(msg))
                             print(json.dumps(msg))
+                            self._outstation.apply_update(value=pydnp3.opendnp3.BinaryOutputStatus(1), index=index)
 
                         else:
                             self._diff.clear()
@@ -101,15 +126,20 @@ class Processor(object):
                             msg = self._diff.get_message()
                             self._gapps.send(self._publish_to_topic, json.dumps(msg))
                             print(json.dumps(msg))
+                            self._outstation.apply_update(value=pydnp3.opendnp3.BinaryOutputStatus(0), index=index)
+
 
             else:
                 _log.debug("command_status={},command_value={}".format(command.status, command.value))
                 for point in self.outstation.get_agent().point_definitions.all_points():
+
                     if point.name in str(point_value.point_def) and point.index==index:
                         self._diff.clear()
                         self._diff.add_difference(point.measurement_id, point.attribute, command.value, 0) # value : received value
                         msg = self._diff.get_message()
                         self._gapps.send(self._publish_to_topic, json.dumps(msg))
+
+                        self._outstation.apply_update(value=pydnp3.opendnp3.AnalogOutputStatus(command.value), index=index)
                         print(json.dumps(msg))
                     #if point.name in str(point_value.point_def) and "RegulatingControl.Mode" in point.attribute :
                     #    self._diff.clear()
@@ -132,9 +162,14 @@ class Processor(object):
             if point_value is None:
                 return opendnp3.CommandStatus.DOWNSTREAM_FAIL
 
+        except DNP3Exception:  # Failed to get point from points mapping
+            _log.debug(f"op_type direct operated {index} is now {command.value}")
+            self.outstation.db_config.aoStatus[index] = command.value
+
+
         except Exception as ex:
             print(ex)
-            _log.error('No DNP3 PointDefinition for command with index {}'.format(index))
+            _log.error(f'No DNP3 PointDefinition for command {command_type} with index {index}')
 
             return opendnp3.CommandStatus.DOWNSTREAM_FAIL
 
@@ -149,7 +184,9 @@ class Processor(object):
 
     def add_to_current_values(self, value):
         """Update a dictionary that holds the most-recently-received value of each point."""
+        _log.debug(f"Updating current value: {value.point_def.point_type}[int[{value.index}]] to {value}")
         self._current_point_values.setdefault(value.point_def.point_type, {})[int(value.index)] = value
+        _log.debug(f"After update current point values now!:\n{self._current_point_values}")
 
     def get_point_named(self, point_name):
         return self.point_definitions.get_point_named(point_name)
@@ -265,15 +302,17 @@ class Processor(object):
         _log.debug('Sent DNP3 point {}, value={}'.format(point_def, wrapped_val.value))
 
     def _process_point_value(self, point_value):
-        _log.info('Received DNP3 {}'.format(point_value))
+        _log.info('000000000000000Received DNP3 {}'.format(point_value))
         if point_value.command_type == 'Select':
             # Perform any needed validation now, then wait for the subsequent Operate command.
             return None
         else:
             self.add_to_current_values(point_value)
             if point_value.point_def.is_selector_block:
+                _log.info("IT IS A SELECTOR BLOCK")
                 self.start_selector_block(point_value)
             if point_value.point_def.save_on_write:
+                _log.info("IT IS SAVE_ON_WRITE")
                 self.save_selector_block(point_value)
             return point_value
 
@@ -339,50 +378,87 @@ def on_message(headers,message):
         print("Done updating outstations")
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser()
-    parser.add_argument('simulation_id', help="Simulation id")
-    opts = parser.parse_args()
-    simulation_id = opts.simulation_id
-    
-    with open("/gridappsd/services/gridappsd-dnp3/service/dnp3/port.json", 'r') as f:
-        port_config = json.load(f)
+    import os
+    import sys
+    from pprint import pprint
+    import gridappsd.topics as topics
 
-    filepath = "/tmp/gridappsd_tmp/{}/model_dict.json".format(simulation_id)
+    # Default case for publishing is to the field input topic, however if there is a simulation
+    # then it becomes the simulation input topic.
+    publish_topic = topics.field_input_topic()
+    subscription_topic = topics.field_output_topic()
+
+    # if we have a simulation id then the publish_topic to be based upon
+    # that simulation id.
+    simulation_id = None
+    opts = None
+    if len(sys.argv) > 1:
+        parser = argparse.ArgumentParser()
+        parser.add_argument('simulation_id', help="Simulation id")
+        # TODO Possible inclusion of other things that should be modifiable when running this
+        # parser.add_argument("--dnp3_ports_file", default="ports.yaml",
+        #                     help="A ports file that allows multiple outstations.")
+        # parser.add_argument("--model_dict_file", default="dnp3/model_dict.json",
+        #                     help="The model dict file that created from gridappsd")
+        # parser.add_argument("--gridappsd_address", default="127.0.0.1",
+        #                     help="Address for connecting to the gridappsd platform")
+        # parser.add_argument("--username", default=os.environ.get("GRIDAPPSD_USER"),
+        #                     help="Username for connecting to gridappsd platform")
+        # parser.add_argument("--password", default=os.environ.get("GRIDAPPSD_PASSWORD"),
+        #                     help="Password for connecting to gridappsd platform")
+        opts = parser.parse_args()
+        simulation_id = opts.simulation_id
+        publish_topic = topics.simulation_input_topic(simulation_id=simulation_id)
+        subscription_topic = topics.field_output_topic(simulation_id=simulation_id)
+
+    _log.info(f"Publishing difference messages to topic: {publish_topic}")
+
+    with open("ports.yaml") as f:
+        port_config = yaml.safe_load(f.read())
+    # with open("/gridappsd/services/gridappsd-dnp3/service/dnp3/port.json", 'r') as f:
+    #     port_config = json.load(f)
+
+    filepath = "dnp3/model_dict.json"
+    #filepath = "/tmp/gridappsd_tmp/{}/model_dict.json".format(simulation_id)
     with open(filepath, 'r') as fp:
         cim_dict = json.load(fp)
-        
-    
-    gapps = GridAPPSD(opts.simulation_id, address=utils.get_gridappsd_address(),
-                      username=utils.get_gridappsd_user(), password=utils.get_gridappsd_pass())
-    
-    gapps.subscribe(simulation_output_topic(opts.simulation_id), on_message)
+
+    # When in service mode the username/password should be from the environment
+    # TODO: Use environment username/password rather than this hard code hack.
+    gapps = GridAPPSD(simulation_id=simulation_id, address=utils.get_gridappsd_address(),
+                      username="system", password="manager")
+
+    # Monitor simulation or field bus output that needs to be translated to the outstation
+    # database through this subscription.
+    gapps.subscribe(subscription_topic, on_message)
 
     
     dnp3_object_list = []
     check_valid_points = True
-    
+
     for obj in port_config: 
-        dnp3_object = DNP3Mapping(cim_dict)
-        dnp3_object._create_dnp3_object_map()
-        
+        dnp3_mapping = DNP3Mapping(deepcopy(cim_dict))
+
         if check_valid_points:
             with open("/tmp/json_out", 'w') as fp:
-                out_dict = dict({'points': dnp3_object.out_json})
+                out_dict = dict({'points': dnp3_mapping.out_json})
                 json.dump(out_dict, fp, indent=2, sort_keys=True)
-            if not dnp3_object.out_json:
+            if not dnp3_mapping.out_json:
                 sys.stderr.write("invalid points specified in json configuration file.")
                 sys.exit(10)
             check_valid_points = False
 
         oustation = obj
         point_def = PointDefinitions()
-        point_def.load_points(dnp3_object.out_json)
-        processor = Processor(point_def, simulation_id, gapps)
-        dnp3_object.load_point_def(point_def)
+        point_def.load_points(dnp3_mapping.out_json)
+        processor = Processor(point_definitions=point_def,
+                              topic_to_publish_to=publish_topic,
+                              gridappsd_obj=gapps)
+        dnp3_mapping.load_point_def(point_def)
         outstation = start_outstation(oustation, processor)
         #for outstation in outstation_list:
-        dnp3_object.load_outstation(outstation)
-        dnp3_object_list.append(dnp3_object)
+        dnp3_mapping.load_outstation(outstation)
+        dnp3_object_list.append(dnp3_mapping)
     # gapps.send(simulation_input_topic(opts.simulation_id), processor.process_point_value())
      
     try:
